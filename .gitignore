@@ -1,0 +1,21 @@
+target/
+*.class
+*.log
+*.tmp
+*.bak
+.DS_Store
+.idea/
+*.iml
+.vscode/
+.settings/
+*.swp
+*.swo
+*.orig
+._*
+*.tmp
+
+# Maven
+log/
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
