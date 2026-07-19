@@ -43,11 +43,14 @@ public class PlayerDeathListener implements Listener {
         int inventoryPercent = clamp((int) Math.round(percents[0]), 0, 100);
         int expPercent = clamp((int) Math.round(percents[1]), 0, 100);
 
+        int totalOccupiedSlots = countOccupiedSlots(player);
         int droppedItems = dropInventory(player, inventoryPercent);
         int droppedExp = dropExperience(player, expPercent);
 
+        int actualLostPercent = totalOccupiedSlots <= 0 ? 0 : clamp((int) Math.round(droppedItems * 100.0 / totalOccupiedSlots), 0, 100);
+
         MessageUtil.send(player, configManager.getDeathMessage()
-                .replace("{inv_percent}", String.valueOf(inventoryPercent))
+                .replace("{inv_percent}", String.valueOf(actualLostPercent))
                 .replace("{exp_percent}", String.valueOf(expPercent))
                 .replace("{items_dropped}", String.valueOf(droppedItems))
                 .replace("{exp_dropped}", String.valueOf(droppedExp)));
@@ -92,6 +95,18 @@ public class PlayerDeathListener implements Listener {
         }
         setFromTotalExp(player, remaining);
         return dropAmount;
+    }
+
+    private static int countOccupiedSlots(Player player) {
+        int occupied = 0;
+        PlayerInventory inventory = player.getInventory();
+        for (int slot = 0; slot < 41; slot++) {
+            ItemStack item = inventory.getItem(slot);
+            if (item != null && !item.getType().isAir()) {
+                occupied++;
+            }
+        }
+        return occupied;
     }
 
     private static int totalExp(int level, float progress) {
