@@ -6,13 +6,8 @@ import org.bukkit.plugin.Plugin;
 
 import java.lang.reflect.Method;
 import java.util.logging.Logger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class MMOItemsHook {
-    private static final int MINIMUM_MAJOR = 6;
-    private static final int MINIMUM_MINOR = 10;
-
     private final boolean available;
     private final Logger logger;
     private Class<?> nbtItemClass;
@@ -24,13 +19,6 @@ public class MMOItemsHook {
         this.logger = plugin.getLogger();
         Plugin mmoPlugin = plugin.getServer().getPluginManager().getPlugin("MMOItems");
         if (mmoPlugin == null) {
-            this.available = false;
-            return;
-        }
-
-        String version = mmoPlugin.getDescription().getVersion();
-        if (!isSupportedVersion(version)) {
-            logger.warning("[InvKeeper] MMOItems 버전 " + version + "은(는) 지원되지 않습니다. MMOItems 6.10 이상에서만 인식됩니다.");
             this.available = false;
             return;
         }
@@ -47,27 +35,6 @@ public class MMOItemsHook {
             ok = false;
         }
         this.available = ok;
-    }
-
-    private static boolean isSupportedVersion(String version) {
-        if (version == null || version.isBlank()) {
-            return false;
-        }
-        Pattern pattern = Pattern.compile("^(\\d+)\\.(\\d+).*$");
-        Matcher matcher = pattern.matcher(version.trim());
-        if (!matcher.matches()) {
-            return false;
-        }
-        try {
-            int major = Integer.parseInt(matcher.group(1));
-            int minor = Integer.parseInt(matcher.group(2));
-            if (major > MINIMUM_MAJOR) {
-                return true;
-            }
-            return major == MINIMUM_MAJOR && minor >= MINIMUM_MINOR;
-        } catch (NumberFormatException e) {
-            return false;
-        }
     }
 
     public boolean isAvailable() {
