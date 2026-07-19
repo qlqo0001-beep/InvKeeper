@@ -1,6 +1,5 @@
 package com.invkeeper.protection;
 
-import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 
@@ -8,6 +7,11 @@ import java.lang.reflect.Method;
 import java.util.logging.Logger;
 
 public class MMOItemsHook {
+    private static final String[] CANDIDATE_CLASSES = new String[] {
+            "net.Indyuce.mmoitems.api.item.NBTItem",
+            "net.Indyuce.mmoitems.api.NBTItem"
+    };
+
     private final boolean available;
     private final Logger logger;
     private Class<?> nbtItemClass;
@@ -25,16 +29,31 @@ public class MMOItemsHook {
 
         boolean ok = true;
         try {
-            nbtItemClass = Class.forName("net.Indyuce.mmoitems.api.item.NBTItem");
+            ClassLoader mmoClassLoader = mmoPlugin.getClass().getClassLoader();
+            nbtItemClass = loadAvailableClass(mmoClassLoader);
+            if (nbtItemClass == null) {
+                throw new ClassNotFoundException("MMOItems NBTItem 클래스 로딩 실패");
+            }
             getMethod = nbtItemClass.getMethod("get", ItemStack.class);
             getTypeMethod = findMethod(nbtItemClass, "getType");
             getIdMethod = findMethod(nbtItemClass, "getId");
         } catch (Exception e) {
-            logger.warning("[InvKeeper] MMOItems API 로딩 중 오류가 발생했습니다. MMOItems 인식 기능이 비활성화됩니다.");
+            logger.warning("[InvKeeper] MMOItems 플러그인은 설치되어 있지만 MMOItems API 로딩에 실패했습니다. MMOItems 인식 기능이 비활성화됩니다.");
             logger.warning(e.toString());
             ok = false;
         }
         this.available = ok;
+    }
+
+    private static Class<?> loadAvailableClass(ClassLoader classLoader) {
+        for (String candidate : CANDIDATE_CLASSES) {
+            try {
+                return classLoader.loadClass(candidate);
+            } catch (ClassNotFoundException ignored) {
+                // Try next candidate
+            }
+        }
+        return null;
     }
 
     public boolean isAvailable() {
