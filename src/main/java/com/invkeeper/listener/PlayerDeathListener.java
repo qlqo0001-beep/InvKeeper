@@ -61,16 +61,24 @@ public class PlayerDeathListener implements Listener {
             return 0;
         }
         PlayerInventory inventory = player.getInventory();
-        int slotsToDrop = clamp((int) Math.round(41 * percent / 100.0), 0, 41);
-        List<Integer> slots = new ArrayList<>();
+        List<Integer> occupiedSlots = new ArrayList<>();
         for (int slot = 0; slot < 41; slot++) {
-            slots.add(slot);
+            ItemStack item = inventory.getItem(slot);
+            if (item != null && !item.getType().isAir()) {
+                occupiedSlots.add(slot);
+            }
         }
-        Collections.shuffle(slots);
+
+        if (occupiedSlots.isEmpty()) {
+            return 0;
+        }
+
+        int slotsToDrop = clamp((int) Math.round(occupiedSlots.size() * percent / 100.0), 0, occupiedSlots.size());
+        Collections.shuffle(occupiedSlots);
         Location location = player.getLocation();
         int droppedCount = 0;
         for (int i = 0; i < slotsToDrop; i++) {
-            int slot = slots.get(i);
+            int slot = occupiedSlots.get(i);
             ItemStack item = inventory.getItem(slot);
             if (item == null || item.getType().isAir()) {
                 continue;
