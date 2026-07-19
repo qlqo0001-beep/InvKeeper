@@ -75,4 +75,4 @@ messages:
   timed-already-active: "&e이미 보호 상태입니다. (남은 시간: {remaining})"
   timed-activated: "&a인벤토리 보호가 {duration}분간 활성화되었습니다."
   timed-remaining-five-minutes: "&e보호 상태가 5분 남았습니다. 남은 시간: {remaining}"
-  timed-remaining-one-minute: "&e보호 상태가 1분 남았습니다. 남은 시간: {remaining})"
+  timed-remaining-one-minute: "&e보호 상태가 1분 남았습니다. 남은 시간: {remaining}"
