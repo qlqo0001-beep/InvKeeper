@@ -12,7 +12,7 @@ InvKeeper는 Minecraft Paper 26.2 서버를 위한 플러그인으로, 플레이
 - 보호 아이템 2종 지원
   - 소모형 보호권: 소지만 해도 사망 시 자동 사용 후 1개 차감
   - 시간형 보호권: 우클릭 사용 시 지정 시간 동안 사망 보호
-- MMOItems 연동 지원
+- MMOItems 연동 지원 (LiveMMOItem 또는 NBTItem API를 사용하여 가능한 한 넓은 버전 호환성 제공)
 - `/invkeeper status` 명령으로 현재 보호 상태, 적용 중인 드랍 비율 확인
 - 보호권 활성 상태 자동 알림 (5분, 1분 남음)
 - 탭 완성 지원
@@ -30,13 +30,16 @@ InvKeeper는 Minecraft Paper 26.2 서버를 위한 플러그인으로, 플레이
 - `force-keep-inventory-false`: `true`일 경우 모든 월드의 `keepInventory` 게임룰을 강제 `false`로 설정
 - `rules.world`: 월드별 인벤토리/경험치 드랍 비율
 - `rules.permissions`: 우선순위 기반 권한 드랍 규칙
-- `protection-items`: 소모형/시간형 보호권 설정
+- `protection-items`: 소모형/시간형 보호권 설정, 각 아이템의 MMOItems 타입/ID 또는 바닐라 아이템 정보를 지정합니다.
+  - `protection-items.consumable-item.command-keyword`: `/invkeeper give` 명령어에서 사용할 소모형 보호권 키워드
+  - `protection-items.timed-item.command-keyword`: `/invkeeper give` 명령어에서 사용할 시간형 보호권 키워드
+  - `protection-items.timed-item.duration-minutes`: 시간형 보호권의 지속 시간을 분 단위로 설정합니다.
 - `messages`: 사망 및 보호 메시지 템플릿
 
 ## 명령어
 
 - `/invkeeper reload`: 설정을 다시 불러옵니다. (`invkeeper.admin` 권한 필요)
-- `/invkeeper give <player> <consumable|timed> [amount]`: 보호 아이템을 지급합니다. (`invkeeper.admin` 권한 필요)
+- `/invkeeper give <player> <consumable|timed> [amount]`: 보호 아이템을 지급합니다. `consumable`과 `timed`는 설정 파일에서 변경할 수 있습니다. (`invkeeper.admin` 권한 필요)
 - `/invkeeper status`: 자신에게 적용 중인 월드/권한 드랍 비율과 남은 시간 보호 상태를 확인합니다.
 
 ## 현재 변경 사항
