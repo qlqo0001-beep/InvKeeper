@@ -22,6 +22,7 @@ public class ConfigManager {
 
     private boolean forceKeepInventoryFalse = true;
 
+    private String consumableCommandKeyword;
     private boolean useMmoConsumable;
     private String mmoConsumableType;
     private String mmoConsumableId;
@@ -31,6 +32,7 @@ public class ConfigManager {
     private List<String> vanillaConsumableLore;
     private Integer vanillaConsumableCustomModelData;
 
+    private String timedCommandKeyword;
     private int timedDurationMinutes;
     private boolean useMmoTimed;
     private String mmoTimedType;
@@ -117,9 +119,14 @@ public class ConfigManager {
         ConfigurationSection consumableSection = config.getConfigurationSection("protection-items.consumable-item");
         if (consumableSection == null) {
             Bukkit.getLogger().warning("[InvKeeper] protection-items.consumable-item 설정을 찾을 수 없습니다. 기본값으로 무시됩니다.");
+            consumableCommandKeyword = "consumable";
             useMmoConsumable = false;
             useVanillaConsumable = false;
         } else {
+            consumableCommandKeyword = getStringSafe(consumableSection, "command-keyword", "consumable").trim();
+            if (consumableCommandKeyword.isEmpty()) {
+                consumableCommandKeyword = "consumable";
+            }
             useMmoConsumable = getBooleanSafe(consumableSection, "use-mmoitems", false);
             mmoConsumableType = getStringSafe(consumableSection, "mmoitems-type", "");
             mmoConsumableId = getStringSafe(consumableSection, "mmoitems-id", "");
@@ -133,10 +140,15 @@ public class ConfigManager {
         ConfigurationSection timedSection = config.getConfigurationSection("protection-items.timed-item");
         if (timedSection == null) {
             Bukkit.getLogger().warning("[InvKeeper] protection-items.timed-item 설정을 찾을 수 없습니다. 기본값으로 무시됩니다.");
+            timedCommandKeyword = "timed";
             useMmoTimed = false;
             useVanillaTimed = false;
             timedDurationMinutes = 30;
         } else {
+            timedCommandKeyword = getStringSafe(timedSection, "command-keyword", "timed").trim();
+            if (timedCommandKeyword.isEmpty()) {
+                timedCommandKeyword = "timed";
+            }
             timedDurationMinutes = parseIntObject(timedSection.get("duration-minutes"), 30);
             if (timedDurationMinutes < 0) {
                 timedDurationMinutes = 30;
@@ -186,6 +198,10 @@ public class ConfigManager {
         return forceKeepInventoryFalse;
     }
 
+    public String getConsumableCommandKeyword() {
+        return consumableCommandKeyword;
+    }
+
     public boolean isUseMmoConsumable() {
         return useMmoConsumable;
     }
@@ -220,6 +236,10 @@ public class ConfigManager {
 
     public int getTimedDurationMinutes() {
         return timedDurationMinutes;
+    }
+
+    public String getTimedCommandKeyword() {
+        return timedCommandKeyword;
     }
 
     public boolean isUseMmoTimed() {

@@ -31,7 +31,7 @@ public class InvKeeperCommand implements CommandExecutor, TabCompleter {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length == 0) {
-            MessageUtil.send(sender, "&e사용법: /invkeeper status | /invkeeper reload | /invkeeper give <player> <consumable|timed> [amount]");
+            MessageUtil.send(sender, "&e사용법: /invkeeper status | /invkeeper reload | /invkeeper give <player> <" + configManager.getConsumableCommandKeyword() + "|" + configManager.getTimedCommandKeyword() + "> [amount]");
             return true;
         }
 
@@ -52,7 +52,7 @@ public class InvKeeperCommand implements CommandExecutor, TabCompleter {
                 return true;
             }
             if (args.length < 3) {
-                MessageUtil.send(sender, "&c사용법: /invkeeper give <player> <consumable|timed> [amount]");
+                MessageUtil.send(sender, "&c사용법: /invkeeper give <player> <" + configManager.getConsumableCommandKeyword() + "|" + configManager.getTimedCommandKeyword() + "> [amount]");
                 return true;
             }
             Player target = Bukkit.getPlayer(args[1]);
@@ -61,12 +61,14 @@ public class InvKeeperCommand implements CommandExecutor, TabCompleter {
                 return true;
             }
             Kind kind;
-            if (args[2].equalsIgnoreCase("consumable")) {
+            String consumableKeyword = configManager.getConsumableCommandKeyword();
+            String timedKeyword = configManager.getTimedCommandKeyword();
+            if (args[2].equalsIgnoreCase(consumableKeyword)) {
                 kind = Kind.CONSUMABLE;
-            } else if (args[2].equalsIgnoreCase("timed")) {
+            } else if (args[2].equalsIgnoreCase(timedKeyword)) {
                 kind = Kind.TIMED;
             } else {
-                MessageUtil.send(sender, "&c아이템 종류는 consumable 또는 timed 중 하나여야 합니다.");
+                MessageUtil.send(sender, "&c아이템 종류는 " + consumableKeyword + " 또는 " + timedKeyword + " 중 하나여야 합니다.");
                 return true;
             }
             int amount = 1;
@@ -121,7 +123,7 @@ public class InvKeeperCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        MessageUtil.send(sender, "&e사용법: /invkeeper status | /invkeeper reload | /invkeeper give <player> <consumable|timed> [amount]");
+        MessageUtil.send(sender, "&e사용법: /invkeeper status | /invkeeper reload | /invkeeper give <player> <" + configManager.getConsumableCommandKeyword() + "|" + configManager.getTimedCommandKeyword() + "> [amount]");
         return true;
     }
 
@@ -138,7 +140,7 @@ public class InvKeeperCommand implements CommandExecutor, TabCompleter {
             return filter(players, args[1]);
         }
         if (args.length == 3 && args[0].equalsIgnoreCase("give")) {
-            return filter(List.of("consumable", "timed"), args[2]);
+            return filter(List.of(configManager.getConsumableCommandKeyword(), configManager.getTimedCommandKeyword()), args[2]);
         }
         if (args.length == 4 && args[0].equalsIgnoreCase("give")) {
             return filter(List.of("1", "5", "10"), args[3]);

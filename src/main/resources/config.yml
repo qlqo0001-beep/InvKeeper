@@ -4,11 +4,12 @@
 
 # keepInventory 게임룰 강제 고정 옵션
 # true로 두면 플러그인 로드/월드 로드 시마다 모든 월드의 keepInventory를 false로 강제 설정합니다.
-# (인벤토리 복제 버그 방지를 위해 기본값 true 권장, 끄면 복제 버그가 발생할 수 있습니다)
+# (인벤토리 복제 버그를 방지를 위해 기본값 true 권장, 끄면 복제 버그가 발생할 수 있습니다)
 force-keep-inventory-false: true
 
 rules:
   world:
+    # 0~100 사이의 값을 사용하세요. 0은 완전 보호, 100은 모든 아이템/경험치를 드랍합니다.
     default:        { inventory-drop-percent: 0,   exp-drop-percent: 0 }
     world:          { inventory-drop-percent: 50,  exp-drop-percent: 50 }
     world_nether:   { inventory-drop-percent: 70,  exp-drop-percent: 70 }
@@ -30,9 +31,11 @@ rules:
 
 protection-items:
   consumable-item:
+    # /invkeeper give 명령어에서 소모형 보호권을 지정할 때 사용할 키워드입니다.
+    command-keyword: "consumable"
     use-mmoitems: false
-    mmoitems-type: "강화석"
-    mmoitems-id: "티어1_최상급"
+    mmoitems-type: "소모품"
+    mmoitems-id: "인벤토리보호권_소모형"
 
     use-vanilla: true
     vanilla-material: PAPER
@@ -46,11 +49,14 @@ protection-items:
     # custom-model-data: 1001   # 선택 사항, 필요 시 주석 해제
 
   timed-item:
+    # /invkeeper give 명령어에서 시간형 보호권을 지정할 때 사용할 키워드입니다.
+    command-keyword: "timed"
+    # 시간형 보호권이 활성화될 지속 시간을 분 단위로 설정합니다.
     duration-minutes: 30
 
     use-mmoitems: false
-    mmoitems-type: "강화석"
-    mmoitems-id: "티어1_시간보호"
+    mmoitems-type: "시간보호권"
+    mmoitems-id: "인벤토리보호권_시간형"
 
     use-vanilla: true
     vanilla-material: PAPER
@@ -69,4 +75,4 @@ messages:
   timed-already-active: "&e이미 보호 상태입니다. (남은 시간: {remaining})"
   timed-activated: "&a인벤토리 보호가 {duration}분간 활성화되었습니다."
   timed-remaining-five-minutes: "&e보호 상태가 5분 남았습니다. 남은 시간: {remaining}"
-  timed-remaining-one-minute: "&e보호 상태가 1분 남았습니다. 남은 시간: {remaining}"
+  timed-remaining-one-minute: "&e보호 상태가 1분 남았습니다. 남은 시간: {remaining})"
