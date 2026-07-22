@@ -1,0 +1,33 @@
+name: InvKeeper
+version: '1.0.0'
+main: com.invkeeper.InvKeeperPlugin
+api-version: '1.21'
+softdepend: [MMOItems]
+author: InvKeeperDev
+description: 사망 시 인벤토리/경험치를 월드, 권한, 보호 아이템 기준으로 관리하는 플러그인
+
+commands:
+  invkeeper:
+    description: InvKeeper 관리 명령어
+    usage: /<command> [status|reload|give|soulbind]
+    aliases: [ik]
+
+permissions:
+  invkeeper.admin:
+    description: InvKeeper 관리 권한 (reload, give, soulbind unbind/inspect)
+    default: op
+  invkeeper.drop.donor:
+    description: 후원자 등급 사망 드랍 규칙 적용 권한
+    default: false
+  invkeeper.drop.vip:
+    description: VIP 등급 사망 드랍 규칙 적용 권한
+    default: false
+  invkeeper.drop.admin:
+    description: 관리자 등급 사망 드랍 규칙 적용 권한
+    default: false
+  invkeeper.soulbind.bypass:
+    description: 다른 플레이어의 각인 아이템을 획득/이동할 수 있는 권한
+    default: false
+  invkeeper.soulbind.give:
+    description: 각인 아이템을 지급할 수 있는 권한
+    default: false

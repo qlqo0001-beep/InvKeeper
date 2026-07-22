@@ -1,0 +1,82 @@
+﻿# keepInventory 게임룰 강제 고정 옵션
+force-keep-inventory-false: true
+
+# 영혼각인(소울바인드) 만료 검사를 몇 개의 배치로 나눠서 수행할지 설정합니다.
+# 서버는 매초 접속자 전원을 이 값만큼의 그룹으로 나눠, 매초 한 그룹씩만 순환 검사합니다.
+# (예: 값이 5면, 100명이 있을 때 매초 약 20명씩만 검사하고 5초에 걸쳐 전원을 한 바퀴 돕니다.)
+#
+# - 값을 올리면: 한 틱에 검사하는 인원이 줄어 서버 부하(순간 렉)는 낮아지지만,
+#   개별 아이템의 각인 만료가 화면에 반영되기까지 걸리는 시간(최대 값 초)이 길어집니다.
+# - 값을 내리면: 반영은 빨라지지만 한 틱당 부하가 커집니다.
+# 각인 만료 반영이 몇 초 늦어도 게임플레이에는 지장이 없으므로, 인원이 많을수록
+# 값을 올려 부하를 분산시키는 것을 권장합니다.
+#
+# 권장값 (동시 접속자 수 기준):
+#   ~20명    : 1   (매초 전원 검사해도 부담 없음)
+#   ~50명    : 3
+#   ~100명   : 5   (기본값)
+#   ~200명   : 8~10
+#   ~500명   : 15~20
+#
+# 최소값은 1입니다. 1보다 작게 설정하면 자동으로 1로 보정됩니다.
+soulbind-scan-batches: 5
+
+# 타임존 설정
+# 각인 만료 시간 표시에 사용되는 시간대입니다.
+# 사용 가능한 타임존 목록: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+# (TZ database name 컬럼 참고)
+# 기본값: Asia/Seoul
+timezone: "Asia/Seoul"
+
+rules:
+  world:
+    default:        { inventory-drop-percent: 0,   exp-drop-percent: 0 }
+    world:          { inventory-drop-percent: 50,  exp-drop-percent: 50 }
+    world_nether:   { inventory-drop-percent: 70,  exp-drop-percent: 70 }
+    world_the_end:  { inventory-drop-percent: 100, exp-drop-percent: 100 }
+
+  permissions:
+    - permission: "invkeeper.drop.1"
+      priority: 10
+      inventory-drop-percent: 100
+      exp-drop-percent: 100
+    - permission: "invkeeper.drop.2"
+      priority: 20
+      inventory-drop-percent: 90
+      exp-drop-percent: 90
+    - permission: "invkeeper.drop.3"
+      priority: 30
+      inventory-drop-percent: 80
+      exp-drop-percent: 80
+    - permission: "invkeeper.drop.4"
+      priority: 40
+      inventory-drop-percent: 70
+      exp-drop-percent: 70
+    - permission: "invkeeper.drop.5"
+      priority: 50
+      inventory-drop-percent: 60
+      exp-drop-percent: 60
+    - permission: "invkeeper.drop.6"
+      priority: 60
+      inventory-drop-percent: 50
+      exp-drop-percent: 50
+    - permission: "invkeeper.drop.7"
+      priority: 70
+      inventory-drop-percent: 40
+      exp-drop-percent: 40
+    - permission: "invkeeper.drop.8"
+      priority: 80
+      inventory-drop-percent: 30
+      exp-drop-percent: 30
+    - permission: "invkeeper.drop.9"
+      priority: 90
+      inventory-drop-percent: 20
+      exp-drop-percent: 20
+    - permission: "invkeeper.drop.10"
+      priority: 95
+      inventory-drop-percent: 10
+      exp-drop-percent: 10
+    - permission: "invkeeper.drop.11"
+      priority: 100
+      inventory-drop-percent: 0
+      exp-drop-percent: 0
