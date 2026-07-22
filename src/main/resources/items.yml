@@ -3,22 +3,32 @@
 # ============================================
 #
 # 아이템 종류 (kind):
-#   CONSUMABLE_PROTECTION  - 소모형 보호권 (사망 시 자동 소모되어 완전 보호)
-#   TIMED_PROTECTION       - 시간형 보호권 (우클릭으로 일정 시간 보호)
-#   SOULBIND_TOOL          - 영혼각인 도구 (아이템에 소유자 각인 적용)
-#   SOULBIND_UNBIND_TOOL   - 영혼각인 해제 도구 (각인 제거)
+#   CONSUMABLE_PROTECTION    - 소모형 보호권 (사망 시 자동 소모되어 완전 보호)
+#   TIMED_PROTECTION         - 시간형 보호권 (우클릭으로 일정 시간 보호)
+#   SOULBIND_TOOL_TIME       - 시간형 각인 도구 (아이템에 시간 기반 각인 적용)
+#   SOULBIND_TOOL_STACK      - 스택형 각인 도구 (아이템에 스택 기반 각인 적용)
+#   SOULBIND_UNBIND_TOOL     - 영혼각인 해제 도구 (각인 제거)
 #
-# soulbind-apply-duration (각인 적용 시간):
-#   SOULBIND_TOOL에서만 사용되는 설정
-#   이 도구로 다른 아이템에 각인을 적용할 때의 지속 시간 (분 단위)
-#   - 0 또는 -1: 영구 각인 적용
-#   - 양수: 지정된 시간(분) 동안 각인 유지
+# 각인 도구 설정:
+#   SOULBIND_TOOL_TIME:
+#     soulbind-duration: 각인 지속 시간 (분 단위)
+#       - 0 또는 -1: 영구 각인
+#       - 양수: 지정된 시간(분) 후 만료
+#
+#   SOULBIND_TOOL_STACK:
+#     soulbind-stacks: 각인 스택 수
+#       - 1: 기본값 (사망 1회 버팀)
+#       - 양수: 해당 횟수만큼 사망을 버틸 수 있음
+#       - -1: 무한 (사망해도 각인 유지)
+#
+#   참고: 시간형 각인과 스택형 각인은 동시에 적용할 수 없습니다.
+#         이미 각인된 아이템에 다른 타입의 각인을 적용하면 거부됩니다.
 #
 # use-type: 
 #   vanilla - 마인크래프트 기본 아이템 (material, name, lore 사용)
 #   mmoitems - MMOItems 플러그인 아이템 (mmoitems-type, mmoitems-id 사용)
 #
-# soulbind (각인 설정):
+# soulbind (도구 자체의 각인 설정):
 #   enabled: true/false - 각인 활성화 여부
 #   duration-minutes: 각인 지속 시간 (분 단위)
 #     - 0 또는 -1: 영구 각인 (infinite 자동 적용)
@@ -27,17 +37,24 @@
 #
 # 참고:
 #   - 모든 아이템에 soulbind를 설정할 수 있습니다.
-#   - SOULBIND_TOOL과 SOULBIND_UNBIND_TOOL도 soulbind를 설정하면 도구 자체가 각인되어
-#     거래, 드랍, 픽업이 제한됩니다. (소유자만 사용 가능)
+#   - SOULBIND_TOOL_TIME, SOULBIND_TOOL_STACK, SOULBIND_UNBIND_TOOL도
+#     soulbind를 설정하면 도구 자체가 각인되어 거래, 드랍, 픽업이 제한됩니다.
 #   - CONSUMABLE_PROTECTION과 TIMED_PROTECTION은 보호 아이템 자체에 각인을 적용합니다.
-#   - SOULBIND_TOOL의 soulbind는 도구 자체의 각인이고, soulbind-apply-duration은
+#   - SOULBIND_TOOL_TIME의 soulbind는 도구 자체의 각인이고, soulbind-duration은
 #     이 도구로 다른 아이템에 적용할 각인의 시간입니다.
+#   - SOULBIND_TOOL_STACK의 soulbind는 도구 자체의 각인이고, soulbind-stacks는
+#     이 도구로 다른 아이템에 적용할 각인의 스택 수입니다.
 #   - duration-minutes: 0 또는 -1 = 영구 각인
 #   - duration-minutes: 60 = 60분 각인
 #
 # ============================================
 
 items:
+  # ============================================
+  # 소모형 보호권
+  # ============================================
+
+  # 소모형 보호권 (바닐라)
   consumable_vanilla:
     kind: CONSUMABLE_PROTECTION
     use-type: vanilla
@@ -53,6 +70,7 @@ items:
       enabled: true
       duration-minutes: 0
 
+  # 소모형 보호권 (MMOItems)
   consumable_mmo:
     kind: CONSUMABLE_PROTECTION
     use-type: mmoitems
@@ -62,6 +80,11 @@ items:
       enabled: true
       duration-minutes: 0
 
+  # ============================================
+  # 시간형 보호권
+  # ============================================
+
+  # 시간형 보호권 (바닐라)
   timed_vanilla:
     kind: TIMED_PROTECTION
     use-type: vanilla
@@ -78,6 +101,7 @@ items:
       enabled: true
       duration-minutes: 0
 
+  # 시간형 보호권 (MMOItems)
   timed_mmo:
     kind: TIMED_PROTECTION
     use-type: mmoitems
@@ -88,33 +112,76 @@ items:
       enabled: true
       duration-minutes: 0
 
-  soulbind_tool_vanilla:
-    kind: SOULBIND_TOOL
+  # ============================================
+  # 시간형 각인 도구
+  # ============================================
+
+  # 시간형 각인기 (바닐라)
+  soulbind_tool_time_vanilla:
+    kind: SOULBIND_TOOL_TIME
     use-type: vanilla
-    # 이 도구로 다른 아이템에 적용할 각인의 지속 시간
-    soulbind-apply-duration: 60
+    # 이 도구로 다른 아이템에 적용할 각인의 지속 시간 (분)
+    soulbind-duration: 60
     vanilla-material: amethyst_shard
-    vanilla-name: "&d영혼 각인기"
+    vanilla-name: "&d시간형 각인기"
     vanilla-lore:
       - "&7다른 아이템 위에 드래그-드랍하여"
-      - "&7해당 스택 전체에 영혼각인을 적용합니다."
+      - "&7해당 스택 전체에 시간형 영혼각인을 적용합니다."
       - ""
       - "&e[드래그-드랍 사용]"
     soulbind:
       enabled: true
       duration-minutes: 0
 
-
-  soulbind_tool_mmo:
-    kind: SOULBIND_TOOL
+  # 시간형 각인기 (MMOItems)
+  soulbind_tool_time_mmo:
+    kind: SOULBIND_TOOL_TIME
     use-type: mmoitems
-    soulbind-apply-duration: 60
+    soulbind-duration: 60
     mmoitems-type: "consumable"
-    mmoitems-id: "영혼각인기"
+    mmoitems-id: "시간형각인기"
     soulbind:
       enabled: true
       duration-minutes: 0
 
+  # ============================================
+  # 스택형 각인 도구
+  # ============================================
+
+  # 스택형 각인기 (바닐라)
+  soulbind_tool_stack_vanilla:
+    kind: SOULBIND_TOOL_STACK
+    use-type: vanilla
+    # 이 도구로 다른 아이템에 적용할 각인의 스택 수
+    soulbind-stacks: 1
+    vanilla-material: heart_of_the_sea
+    vanilla-name: "&b스택형 각인기"
+    vanilla-lore:
+      - "&7다른 아이템 위에 드래그-드랍하여"
+      - "&7해당 스택 전체에 스택형 영혼각인을 적용합니다."
+      - "&7(사망 시 스택 1 소모, 0이면 해제)"
+      - ""
+      - "&e[드래그-드랍 사용]"
+    soulbind:
+      enabled: true
+      duration-minutes: 0
+
+  # 스택형 각인기 (MMOItems)
+  soulbind_tool_stack_mmo:
+    kind: SOULBIND_TOOL_STACK
+    use-type: mmoitems
+    soulbind-stacks: 1
+    mmoitems-type: "consumable"
+    mmoitems-id: "스택형각인기"
+    soulbind:
+      enabled: true
+      duration-minutes: 0
+
+  # ============================================
+  # 각인 해제 도구
+  # ============================================
+
+  # 각인 해제기 (바닐라)
   soulbind_unbind_vanilla:
     kind: SOULBIND_UNBIND_TOOL
     use-type: vanilla
@@ -129,6 +196,7 @@ items:
       enabled: true
       duration-minutes: 0
 
+  # 각인 해제기 (MMOItems)
   soulbind_unbind_mmo:
     kind: SOULBIND_UNBIND_TOOL
     use-type: mmoitems

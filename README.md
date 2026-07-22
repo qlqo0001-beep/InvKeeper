@@ -13,14 +13,17 @@
 - **시간형 보호권 (TIMED_PROTECTION)**: 우클릭으로 일정 시간 동안 보호 상태를 활성화합니다. 시간 만료 또는 서버 재시작 시 자동으로 해제됩니다.
 
 ### 2. 영혼각인 (Soulbind)
-- 아이템에 소유자 UUID와 만료 시간을 PDC(PersistentDataContainer)에 저장합니다.
+- 아이템에 소유자 UUID와 만료 시간/스택을 PDC(PersistentDataContainer)에 저장합니다.
 - 소유자만 픽업/이동 가능하며, 타인은 픽업이 차단되고 Shift-click 시 강제 드랍됩니다.
 - 호퍼/드로퍼/광산수레 등 자동 이동도 차단합니다.
-- 만료 시간이 지나면 자동으로 각인이 제거됩니다.
+- **시간형**: 만료 시간이 지나면 자동으로 각인이 제거됩니다.
+- **스택형**: 사망할 때마다 스택이 1씩 감소하며, 0이 되면 각인이 해제됩니다.
 
 ### 3. 각인 도구
-- **영혼각인기 (SOULBIND_TOOL)**: 아이템 위에 드래그-드랍하여 해당 스택 전체에 각인을 적용합니다. `soulbind-apply-duration`으로 적용할 각인의 지속 시간을 설정할 수 있습니다.
+- **시간형 각인기 (SOULBIND_TOOL_TIME)**: 아이템 위에 드래그-드랍하여 시간 기반 각인을 적용합니다. `soulbind-duration`으로 지속 시간(분)을 설정합니다.
+- **스택형 각인기 (SOULBIND_TOOL_STACK)**: 아이템 위에 드래그-드랍하여 스택 기반 각인을 적용합니다. `soulbind-stacks`로 스택 수를 설정합니다.
 - **각인 해제기 (SOULBIND_UNBIND_TOOL)**: 각인된 아이템의 각인을 해제합니다.
+- **참고**: 시간형 각인과 스택형 각인은 동시에 적용할 수 없습니다. 이미 각인된 아이템에 다른 타입의 각인을 적용하면 거부됩니다.
 
 ### 4. 월드별 / 권한별 드랍율
 - `config.yml`의 `rules.world`로 월드별 인벤토리/경험치 드랍 퍼센트를 설정합니다.
@@ -97,6 +100,13 @@ soulbind-scan-batches: 5
 # 기본값: Asia/Seoul
 timezone: "Asia/Seoul"
 
+# 스택형 각인의 기본 스택 수
+# 스택형 각인은 사망할 때마다 스택이 1씩 감소하며, 0이 되면 각인이 해제됩니다.
+# - 1: 기본값 (사망 1회 버팀)
+# - 양수: 해당 횟수만큼 사망을 버틸 수 있음
+# - -1: 무한 (사망해도 각인 유지)
+default-soulbind-stacks: 1
+
 rules:
   world:
     # 0~100 사이의 값을 사용하세요. 0은 완전 보호, 100은 모든 아이템/경험치를 드랍합니다.
@@ -139,7 +149,7 @@ items:
       - "&e[자동 발동]"
     soulbind:
       enabled: true
-      duration-minutes: 0  # 0 = 영구 각인
+      duration-minutes: 0
 
   # 소모형 보호권 (MMOItems)
   consumable_mmo:
@@ -179,30 +189,57 @@ items:
       enabled: true
       duration-minutes: 0
 
-  # 영혼각인기 (바닐라)
-  soulbind_tool_vanilla:
-    kind: SOULBIND_TOOL
+  # 시간형 각인기 (바닐라)
+  soulbind_tool_time_vanilla:
+    kind: SOULBIND_TOOL_TIME
     use-type: vanilla
-    # 이 도구로 다른 아이템에 적용할 각인의 지속 시간 (분)
-    soulbind-apply-duration: 60
+    soulbind-duration: 60
     vanilla-material: amethyst_shard
-    vanilla-name: "&d영혼 각인기"
+    vanilla-name: "&d시간형 각인기"
     vanilla-lore:
       - "&7다른 아이템 위에 드래그-드랍하여"
-      - "&7해당 스택 전체에 영혼각인을 적용합니다."
+      - "&7해당 스택 전체에 시간형 영혼각인을 적용합니다."
       - ""
       - "&e[드래그-드랍 사용]"
     soulbind:
       enabled: true
-      duration-minutes: 0  # 도구 자체의 각인 (영구)
+      duration-minutes: 0
 
-  # 영혼각인기 (MMOItems)
-  soulbind_tool_mmo:
-    kind: SOULBIND_TOOL
+  # 시간형 각인기 (MMOItems)
+  soulbind_tool_time_mmo:
+    kind: SOULBIND_TOOL_TIME
     use-type: mmoitems
-    soulbind-apply-duration: 60
+    soulbind-duration: 60
     mmoitems-type: "consumable"
-    mmoitems-id: "영혼각인기"
+    mmoitems-id: "시간형각인기"
+    soulbind:
+      enabled: true
+      duration-minutes: 0
+
+  # 스택형 각인기 (바닐라)
+  soulbind_tool_stack_vanilla:
+    kind: SOULBIND_TOOL_STACK
+    use-type: vanilla
+    soulbind-stacks: 1
+    vanilla-material: heart_of_the_sea
+    vanilla-name: "&b스택형 각인기"
+    vanilla-lore:
+      - "&7다른 아이템 위에 드래그-드랍하여"
+      - "&7해당 스택 전체에 스택형 영혼각인을 적용합니다."
+      - "&7(사망 시 스택 1 소모, 0이면 해제)"
+      - ""
+      - "&e[드래그-드랍 사용]"
+    soulbind:
+      enabled: true
+      duration-minutes: 0
+
+  # 스택형 각인기 (MMOItems)
+  soulbind_tool_stack_mmo:
+    kind: SOULBIND_TOOL_STACK
+    use-type: mmoitems
+    soulbind-stacks: 1
+    mmoitems-type: "consumable"
+    mmoitems-id: "스택형각인기"
     soulbind:
       enabled: true
       duration-minutes: 0
@@ -239,21 +276,26 @@ items:
 |------|------|
 | `CONSUMABLE_PROTECTION` | 사망 시 자동 소모되는 보호권 |
 | `TIMED_PROTECTION` | 우클릭으로 활성화하는 시간제 보호권 |
-| `SOULBIND_TOOL` | 아이템에 영혼각인을 적용하는 도구 |
-| `SOULBIND_UNBIND_TOOL` | 각인을 해제하는 도구 |
+| `SOULBIND_TOOL_TIME` | 시간형 각인 도구 (`soulbind-duration`으로 시간 설정) |
+| `SOULBIND_TOOL_STACK` | 스택형 각인 도구 (`soulbind-stacks`로 스택 설정) |
+| `SOULBIND_UNBIND_TOOL` | 각인 해제 도구 |
 
 **use-type:**
 - `vanilla` — 마인크래프트 기본 아이템 (`vanilla-material`, `vanilla-name`, `vanilla-lore` 사용)
 - `mmoitems` — MMOItems 플러그인 아이템 (`mmoitems-type`, `mmoitems-id` 사용)
 
-**soulbind 설정:**
+**각인 도구 설정:**
+- `SOULBIND_TOOL_TIME`:
+  - `soulbind-duration`: 각인 지속 시간 (분 단위). `0` 또는 `-1` = 영구, 양수 = 해당 분 후 만료
+- `SOULBIND_TOOL_STACK`:
+  - `soulbind-stacks`: 각인 스택 수. `-1` = 무한, `1` = 사망 1회 버팀, 양수 = 해당 횟수
+
+**soulbind (도구 자체 각인 설정):**
 - `enabled: true/false` — 각인 활성화 여부
 - `duration-minutes: 0` — 영구 각인 (infinite 자동 적용)
 - `duration-minutes: 60` — 60분 후 만료
 
-**soulbind-apply-duration (SOULBIND_TOOL 전용):**
-- 이 도구로 다른 아이템에 각인을 적용할 때의 지속 시간 (분 단위)
-- `0` 또는 `-1`이면 영구 각인 적용
+**참고:** 시간형 각인과 스택형 각인은 동시에 적용할 수 없습니다. 각인 도구로 다른 타입의 각인이 적용된 아이템에 적용 시도 시 거부 메시지가 출력됩니다.
 
 ### messages.yml — 메시지 설정
 
@@ -272,6 +314,8 @@ soulbound-cant-pickup: "&c이 아이템은 {owner}의 각인 아이템입니다.
 soulbound-forced-dropped: "&e이 플레이어가 소유자가 아니라서 아이템을 강제로 드랍했습니다."
 soulbound-already-infinite: "&e이 아이템은 이미 무한 각인 상태입니다."
 soulbound-lore-format: "&7각인: &b{owner} &7| 만료: &b{expiry}"
+soulbound-lore-format-stack: "&7각인: &b{owner} &7| 횟수: &b{stacks}"
+soulbound-conflict-type: "&c이 아이템은 {type} 각인 상태입니다. 다른 타입의 각인을 적용할 수 없습니다."
 time-format: "{minutes}분 {seconds_padded}초"
 ```
 
@@ -280,10 +324,12 @@ time-format: "{minutes}분 {seconds_padded}초"
 - `{exp_percent}` — 설정된 경험치 드랍 퍼센트
 - `{items_dropped}` — 실제 드랍된 아이템 개수
 - `{exp_dropped}` — 실제 드랍된 경험치 양
-- `{remaining}` — 남은 시간 (time-format 기반)
+- `{remaining}` — 남은 시간 (time-format 기반) 또는 스택형의 경우 "N회"
 - `{duration}` — 설정된 시간 (분)
 - `{owner}` — 각인 소유자 이름
-- `{expiry}` — 각인 만료 시간 (timezone 기반)
+- `{expiry}` — 각인 만료 시간 (timezone 기반, 시간형)
+- `{stacks}` — 남은 스택 수 (스택형)
+- `{type}` — 각인 타입 이름 (충돌 메시지용)
 - `{minutes}`, `{seconds}`, `{seconds_padded}`, `{total_seconds}` — 시간 포맷용
 
 ---
@@ -293,11 +339,17 @@ time-format: "{minutes}분 {seconds_padded}초"
 ### 저장 방식
 - 각인 정보는 아이템의 `PersistentDataContainer(PDC)`에 저장됩니다.
 - `soulbind_owner` — 소유자 UUID (STRING)
-- `soulbind_expiry` — 만료 epoch millis (LONG), `-1`은 영구
+- `soulbind_expiry` — 만료 epoch millis (LONG), `-1`은 영구 (시간형)
+- `soulbind_stacks` — 남은 스택 수 (INTEGER), `-1`은 무한 (스택형)
 - `soulbind_lore_text` — 현재 적용된 로어 텍스트 (STRING, 서버 재시작 후에도 로어 중복 방지용)
 
+### 각인 타입
+- **시간형 (TIME)**: `soulbind_expiry`가 설정됨. 만료 시간이 지나면 자동 해제.
+- **스택형 (STACK)**: `soulbind_stacks`가 설정됨. 사망 시 1씩 감소, 0이 되면 해제.
+- **상호 배타적**: 한 아이템에 두 타입이 동시에 존재할 수 없음. 각인 도구 적용 시 타입 충돌이 발생하면 거부됨.
+
 ### 만료 처리
-- **이벤트 기반**: 아이템 픽업, 인벤토리 클릭/드래그, 사망 시 각인 만료를 검사하여 자동 제거합니다.
+- **이벤트 기반**: 아이템 픽업, 인벤토리 클릭/드래그, 사망 시 각인 만료/스택 소진을 검사하여 자동 제거합니다.
 - **주기적 검사**: `ProtectionAlertManager`가 1초마다 배치 단위로 접속자 인벤토리를 스캔하여 만료된 각인을 제거합니다. `soulbind-scan-batches` 값으로 성능을 조절할 수 있습니다.
 
 ### 제한 사항
@@ -318,11 +370,11 @@ com.invkeeper
 │   ├── ConfigManager.java        # 3개 설정 파일 로드 및 규칙 해석
 │   ├── WorldRule.java             # 월드별 드랍율
 │   ├── PermissionRule.java        # 권한별 드랍율 (priority 기반)
-│   └── ProtectionItemConfig.java  # 아이템 설정 (4가지 Kind)
+│   └── ProtectionItemConfig.java  # 아이템 설정 (5가지 Kind)
 ├── listener/
-│   ├── PlayerDeathListener.java   # 사망 처리, 보호권 소모, 드랍
+│   ├── PlayerDeathListener.java   # 사망 처리, 보호권 소모, 드랍, 스택 감소
 │   ├── ProtectionItemUseListener.java # 시간형 보호권 우클릭 사용
-│   ├── SoulbindInventoryListener.java # 각인 도구 드래그-드랍
+│   ├── SoulbindInventoryListener.java # 각인 도구 드래그-드랍 (TIME/STACK 분기)
 │   ├── SoulbindPickupListener.java    # 각인 아이템 픽업 제한
 │   ├── SoulbindTransferListener.java  # 호퍼/Shift-click/드래그 이동 제한
 │   └── WorldLoadListener.java         # 월드 로드 시 keepInventory=false 강제
@@ -333,18 +385,18 @@ com.invkeeper
 │   ├── TimedProtectionStore.java  # PDC 기반 시간 보호 저장
 │   └── ProtectionAlertManager.java # 1초 주기 태스크 (알림 + 각인 만료 검사)
 ├── soulbind/
-│   └── SoulbindManager.java       # PDC 기반 각인 관리 (적용/제거/만료/로어)
+│   └── SoulbindManager.java       # PDC 기반 각인 관리 (TIME/STACK, 적용/제거/만료/로어)
 └── util/
     └── MessageUtil.java           # 색상 변환, 시간 포맷팅, 타임존
 ```
 
 ### 데이터 흐름
 1. **플러그인 로드**: `ConfigManager`가 `config.yml`, `items.yml`, `messages.yml`을 로드합니다.
-2. **사망 발생**: `PlayerDeathListener`가 보호권을 확인하고, 없으면 드랍율에 따라 아이템과 경험치를 드랍합니다.
+2. **사망 발생**: `PlayerDeathListener`가 보호권을 확인하고, 없으면 드랍율에 따라 아이템과 경험치를 드랍합니다. 스택형 각인 아이템은 스택을 1 감소시킵니다.
 3. **보호권 사용**: 소모형은 자동 소모, 시간형은 우클릭으로 `TimedProtectionStore`에 만료 시간을 저장합니다.
-4. **각인 적용**: `SoulbindInventoryListener`가 각인 도구 사용 시 `SoulbindManager`를 통해 PDC에 각인 정보를 저장합니다.
+4. **각인 적용**: `SoulbindInventoryListener`가 각인 도구 사용 시 `SoulbindManager`를 통해 PDC에 각인 정보를 저장합니다. TIME/STACK 타입 충돌 시 거부합니다.
 5. **각인 제한**: 픽업/이동 리스너가 각인 상태를 확인하여 소유자 외에는 차단합니다.
-6. **만료 처리**: 주기적 스캔과 이벤트 기반 검사로 만료된 각인을 자동 제거합니다.
+6. **만료 처리**: 주기적 스캔과 이벤트 기반 검사로 만료된 각인(TIME) 또는 스택이 소진된 각인(STACK)을 자동 제거합니다.
 
 ### 메모리 관리
 - `InvKeeperPlugin.CleanupListener`가 플레이어 접속 종료 시 `ProtectionAlertManager`의 리마인더 상태를 정리하여 메모리 누수를 방지합니다.
@@ -378,30 +430,6 @@ mvn clean package
 4. `items.yml`과 `messages.yml`을 필요에 맞게 수정합니다.
 5. `/invkeeper reload`로 설정을 적용합니다.
 
----
-
-## 배치 파일 사용법
-
-로컬에만 존재하는 배치 파일들(`.gitignore`에서 제외됨)입니다.
-
-### build.bat — 원클릭 빌드
-
-더블클릭만 하면 Maven으로 플러그인을 자동 빌드합니다. `apache-maven-*` 폴더가 있으면 해당 Maven을, 없으면 시스템 `mvn`을 사용합니다. 빌드 결과는 `target/InvKeeper.jar`에 생성됩니다.
-
-### push.bat — 깃헙 업로드
-
-더블클릭 후 커밋 메시지만 입력하면 됩니다.
-
-```
-1. push.bat 실행
-2. 커밋 메시지 입력 (예: "설정 파일 정리 및 README 업데이트")
-3. 엔터 → 자동으로 git add → git commit → git push origin main 실행
-```
-
-**첫 설정 시 필요** (원격 저장소가 없을 때만 1회):
-```
-git remote add origin https://github.com/qlqo0001-beep/InvKeeper.git
-```
 
 ---
 

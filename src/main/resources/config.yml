@@ -28,6 +28,13 @@ soulbind-scan-batches: 5
 # 기본값: Asia/Seoul
 timezone: "Asia/Seoul"
 
+# 스택형 각인의 기본 스택 수
+# 스택형 각인은 사망할 때마다 스택이 1씩 감소하며, 0이 되면 각인이 해제됩니다.
+# - 1: 기본값 (사망 1회 버팀)
+# - 양수: 해당 횟수만큼 사망을 버틸 수 있음
+# - -1: 무한 (사망해도 각인 유지)
+default-soulbind-stacks: 1
+
 rules:
   world:
     default:        { inventory-drop-percent: 0,   exp-drop-percent: 0 }

@@ -1,6 +1,7 @@
 package com.invkeeper.listener;
 
 import com.invkeeper.config.ConfigManager;
+import com.invkeeper.config.ProtectionItemConfig;
 import com.invkeeper.protection.ProtectionManager;
 import com.invkeeper.soulbind.SoulbindManager;
 import com.invkeeper.util.MessageUtil;
@@ -82,16 +83,13 @@ public class SoulbindInventoryListener implements Listener {
             if (target == null || target.getType().isAir()) return;
             
             // Clear the target's soulbind first if it has already expired.
-            // Without this, isSoulbound(target) below stays true for an expired
-            // bind (nothing else checks the target item), so re-engraving would
-            // incorrectly take the "extend existing expiry" branch using stale
-            // owner/expiry data instead of applying a fresh soulbind.
             if (soulbindManager.isSoulbound(target)) {
                 soulbindManager.checkAndRemoveExpired(target);
             }
             
             boolean isUnbindTool = toolConfig.getKind().isUnbindTool();
             String loreFormat = configManager.getSoulboundLoreFormat();
+            String stackLoreFormat = configManager.getSoulboundLoreFormatStack();
             
             java.util.UUID targetOwner = soulbindManager.getOwnerUuid(target);
             boolean canModify = targetOwner == null || targetOwner.equals(player.getUniqueId()) || canBypass(player);
@@ -114,60 +112,121 @@ public class SoulbindInventoryListener implements Listener {
                 return;
             }
             
-            // Use apply duration for the target item, not the tool's own soulbind duration
-            int applyDuration = toolConfig.getSoulbindApplyDuration();
-            long targetExpiry;
-            if (applyDuration <= 0) {
-                targetExpiry = -1L; // infinite
-            } else {
-                targetExpiry = System.currentTimeMillis() + (long) applyDuration * 60L * 1000L;
+            // Check for type conflict: TIME tool on STACK target, or STACK tool on TIME target
+            SoulbindManager.SoulbindType targetType = soulbindManager.getSoulbindType(target);
+            
+            if (toolConfig.getKind().isTimeTool() && targetType == SoulbindManager.SoulbindType.STACK) {
+                MessageUtil.send(player, configManager.getSoulboundConflictTypeMessage()
+                        .replace("{type}", "스택형"));
+                return;
             }
             
-            // updateLore() uses PDC-stored lore text for accurate matching,
-            // so no need to remove old lines manually here.
+            if (toolConfig.getKind().isStackTool() && targetType == SoulbindManager.SoulbindType.TIME) {
+                MessageUtil.send(player, configManager.getSoulboundConflictTypeMessage()
+                        .replace("{type}", "시간형"));
+                return;
+            }
             
-            if (!soulbindManager.isSoulbound(target)) {
-                soulbindManager.applySoulbind(target, player.getUniqueId(), targetExpiry);
-                soulbindManager.updateLore(target, loreFormat, player.getName(), targetExpiry);
-                event.setCurrentItem(target);
-                consumeOneTool(event, player, action);
-                String remainingDisplay = applyDuration <= 0 ? "무한" : MessageUtil.formatDuration((long)applyDuration*60*1000, configManager.getTimeFormat());
-                MessageUtil.send(player, configManager.getSoulboundAppliedMessage()
-                        .replace("{owner}", player.getName())
-                        .replace("{remaining}", remainingDisplay));
-            } else {
-                long currentExpiry = soulbindManager.getExpiryMillis(target);
-                if (targetExpiry == -1L) {
-                    // Tool applies infinite soulbind
-                    if (currentExpiry != -1L) {
-                        soulbindManager.applySoulbind(target, soulbindManager.getOwnerUuid(target), -1L);
-                        String ownerName = soulbindManager.getOwnerUuid(target) != null
-                                ? getOwnerName(soulbindManager.getOwnerUuid(target))
-                                : player.getName();
-                        soulbindManager.updateLore(target, loreFormat, ownerName, -1L);
-                        event.setCurrentItem(target);
-                        consumeOneTool(event, player, action);
-                        MessageUtil.send(player, configManager.getSoulboundAppliedMessage()
-                                .replace("{owner}", player.getName())
-                                .replace("{remaining}", "무한"));
-                    }
+            if (toolConfig.getKind().isTimeTool()) {
+                // Time-based soulbind application
+                int applyDuration = toolConfig.getSoulbindApplyDuration();
+                long targetExpiry;
+                if (applyDuration <= 0) {
+                    targetExpiry = -1L; // infinite
                 } else {
-                    // Tool applies timed soulbind
-                    if (currentExpiry == -1L) {
-                        // Target is already infinite, nothing to do
+                    targetExpiry = System.currentTimeMillis() + (long) applyDuration * 60L * 1000L;
+                }
+                
+                if (!soulbindManager.isSoulbound(target)) {
+                    soulbindManager.applySoulbind(target, player.getUniqueId(), targetExpiry);
+                    soulbindManager.updateLore(target, loreFormat, player.getName(), targetExpiry);
+                    event.setCurrentItem(target);
+                    consumeOneTool(event, player, action);
+                    String remainingDisplay = applyDuration <= 0 ? "무한" : MessageUtil.formatDuration((long)applyDuration*60*1000, configManager.getTimeFormat());
+                    MessageUtil.send(player, configManager.getSoulboundAppliedMessage()
+                            .replace("{owner}", player.getName())
+                            .replace("{remaining}", remainingDisplay));
+                } else {
+                    long currentExpiry = soulbindManager.getExpiryMillis(target);
+                    if (targetExpiry == -1L) {
+                        // Tool applies infinite soulbind
+                        if (currentExpiry != -1L) {
+                            soulbindManager.applySoulbind(target, soulbindManager.getOwnerUuid(target), -1L);
+                            String ownerName = soulbindManager.getOwnerUuid(target) != null
+                                    ? getOwnerName(soulbindManager.getOwnerUuid(target))
+                                    : player.getName();
+                            soulbindManager.updateLore(target, loreFormat, ownerName, -1L);
+                            event.setCurrentItem(target);
+                            consumeOneTool(event, player, action);
+                            MessageUtil.send(player, configManager.getSoulboundAppliedMessage()
+                                    .replace("{owner}", player.getName())
+                                    .replace("{remaining}", "무한"));
+                        }
                     } else {
-                        long newExpiry = currentExpiry + (long) applyDuration * 60L * 1000L;
-                        soulbindManager.applySoulbind(target, soulbindManager.getOwnerUuid(target), newExpiry);
-                        String ownerName = soulbindManager.getOwnerUuid(target) != null
-                                ? getOwnerName(soulbindManager.getOwnerUuid(target))
-                                : player.getName();
-                        soulbindManager.updateLore(target, loreFormat, ownerName, newExpiry);
-                        event.setCurrentItem(target);
-                        consumeOneTool(event, player, action);
-                        String remainingDisplay = MessageUtil.formatDuration((long)applyDuration*60*1000, configManager.getTimeFormat());
-                        MessageUtil.send(player, configManager.getSoulboundAppliedMessage()
-                                .replace("{owner}", player.getName())
-                                .replace("{remaining}", remainingDisplay));
+                        // Tool applies timed soulbind
+                        if (currentExpiry == -1L) {
+                            // Target is already infinite, nothing to do
+                        } else {
+                            long newExpiry = currentExpiry + (long) applyDuration * 60L * 1000L;
+                            soulbindManager.applySoulbind(target, soulbindManager.getOwnerUuid(target), newExpiry);
+                            String ownerName = soulbindManager.getOwnerUuid(target) != null
+                                    ? getOwnerName(soulbindManager.getOwnerUuid(target))
+                                    : player.getName();
+                            soulbindManager.updateLore(target, loreFormat, ownerName, newExpiry);
+                            event.setCurrentItem(target);
+                            consumeOneTool(event, player, action);
+                            String remainingDisplay = MessageUtil.formatDuration((long)applyDuration*60*1000, configManager.getTimeFormat());
+                            MessageUtil.send(player, configManager.getSoulboundAppliedMessage()
+                                    .replace("{owner}", player.getName())
+                                    .replace("{remaining}", remainingDisplay));
+                        }
+                    }
+                }
+            } else if (toolConfig.getKind().isStackTool()) {
+                // Stack-based soulbind application
+                int stacks = toolConfig.getSoulbindStacks();
+                
+                if (!soulbindManager.isSoulbound(target)) {
+                    soulbindManager.applyStackSoulbind(target, player.getUniqueId(), stacks);
+                    soulbindManager.updateLore(target, loreFormat, stackLoreFormat, player.getName(), -1L, stacks);
+                    event.setCurrentItem(target);
+                    consumeOneTool(event, player, action);
+                    String stacksDisplay = stacks < 0 ? "무한" : String.valueOf(stacks);
+                    MessageUtil.send(player, configManager.getSoulboundAppliedMessage()
+                            .replace("{owner}", player.getName())
+                            .replace("{remaining}", stacksDisplay + "회"));
+                } else {
+                    // Already soulbound (stack type, since we checked conflict above)
+                    int currentStacks = soulbindManager.getStacks(target);
+                    if (stacks < 0) {
+                        // Tool applies infinite stacks
+                        if (currentStacks >= 0) {
+                            soulbindManager.applyStackSoulbind(target, soulbindManager.getOwnerUuid(target), -1);
+                            String ownerName = soulbindManager.getOwnerUuid(target) != null
+                                    ? getOwnerName(soulbindManager.getOwnerUuid(target))
+                                    : player.getName();
+                            soulbindManager.updateLore(target, loreFormat, stackLoreFormat, ownerName, -1L, -1);
+                            event.setCurrentItem(target);
+                            consumeOneTool(event, player, action);
+                            MessageUtil.send(player, configManager.getSoulboundAppliedMessage()
+                                    .replace("{owner}", player.getName())
+                                    .replace("{remaining}", "무한"));
+                        }
+                    } else {
+                        // Tool adds stacks
+                        if (currentStacks >= 0) {
+                            int newStacks = currentStacks + stacks;
+                            soulbindManager.applyStackSoulbind(target, soulbindManager.getOwnerUuid(target), newStacks);
+                            String ownerName = soulbindManager.getOwnerUuid(target) != null
+                                    ? getOwnerName(soulbindManager.getOwnerUuid(target))
+                                    : player.getName();
+                            soulbindManager.updateLore(target, loreFormat, stackLoreFormat, ownerName, -1L, newStacks);
+                            event.setCurrentItem(target);
+                            consumeOneTool(event, player, action);
+                            MessageUtil.send(player, configManager.getSoulboundAppliedMessage()
+                                    .replace("{owner}", player.getName())
+                                    .replace("{remaining}", String.valueOf(stacks) + "회"));
+                        }
                     }
                 }
             }

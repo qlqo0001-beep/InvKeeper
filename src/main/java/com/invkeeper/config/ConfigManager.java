@@ -44,8 +44,11 @@ public class ConfigManager {
     private String soulboundForcedDroppedMessage;
     private String soulboundAlreadyInfiniteMessage;
     private String soulboundLoreFormat;
+    private String soulboundLoreFormatStack;
+    private String soulboundConflictTypeMessage;
     private String timezone;
     private int soulbindScanBatches = 5;
+    private int defaultSoulbindStacks = 1;
 
     public ConfigManager(Plugin plugin) {
         this.plugin = Objects.requireNonNull(plugin, "plugin");
@@ -65,6 +68,7 @@ public class ConfigManager {
         forceKeepInventoryFalse = getBooleanSafe(config, "force-keep-inventory-false", true);
         soulbindScanBatches = Math.max(1, getIntSafe(config, "soulbind-scan-batches", 5));
         timezone = getStringSafe(config, "timezone", "Asia/Seoul");
+        defaultSoulbindStacks = parseIntObject(config.get("default-soulbind-stacks"), 1);
 
         worldRules.clear();
         defaultWorldRule = new WorldRule(0, 0);
@@ -161,6 +165,8 @@ public class ConfigManager {
         soulboundForcedDroppedMessage = getStringSafe(messagesConfig, "soulbound-forced-dropped", "&e이 플레이어가 소유자가 아니라서 아이템을 강제로 드랍했습니다.");
         soulboundAlreadyInfiniteMessage = getStringSafe(messagesConfig, "soulbound-already-infinite", "&e이 아이템은 이미 무한 각인 상태입니다.");
         soulboundLoreFormat = getStringSafe(messagesConfig, "soulbound-lore-format", "&7각인: &b{owner} &7| 만료: &b{expiry}");
+        soulboundLoreFormatStack = getStringSafe(messagesConfig, "soulbound-lore-format-stack", "&7각인: &b{owner} &7| 횟수: &b{stacks}");
+        soulboundConflictTypeMessage = getStringSafe(messagesConfig, "soulbound-conflict-type", "&c이 아이템은 {type} 각인 상태입니다. 다른 타입의 각인을 적용할 수 없습니다.");
     }
 
     private void setDefaultMessages() {
@@ -179,6 +185,8 @@ public class ConfigManager {
         soulboundForcedDroppedMessage = "&e이 플레이어가 소유자가 아니라서 아이템을 강제로 드랍했습니다.";
         soulboundAlreadyInfiniteMessage = "&e이 아이템은 이미 무한 각인 상태입니다.";
         soulboundLoreFormat = "&7각인: &b{owner} &7| 만료: &b{expiry}";
+        soulboundLoreFormatStack = "&7각인: &b{owner} &7| 횟수: &b{stacks}";
+        soulboundConflictTypeMessage = "&c이 아이템은 {type} 각인 상태입니다. 다른 타입의 각인을 적용할 수 없습니다.";
     }
 
     public Map<String, WorldRule> getWorldRules() { return Collections.unmodifiableMap(worldRules); }
@@ -186,6 +194,7 @@ public class ConfigManager {
     public List<PermissionRule> getPermissionRules() { return Collections.unmodifiableList(permissionRules); }
     public boolean isForceKeepInventoryFalse() { return forceKeepInventoryFalse; }
     public int getSoulbindScanBatches() { return soulbindScanBatches; }
+    public int getDefaultSoulbindStacks() { return defaultSoulbindStacks; }
 
     public String getDeathMessage() { return deathMessage; }
     public String getProtectedMessage() { return protectedMessage; }
@@ -202,6 +211,8 @@ public class ConfigManager {
     public String getSoulboundForcedDroppedMessage() { return soulboundForcedDroppedMessage; }
     public String getSoulboundAlreadyInfiniteMessage() { return soulboundAlreadyInfiniteMessage; }
     public String getSoulboundLoreFormat() { return soulboundLoreFormat; }
+    public String getSoulboundLoreFormatStack() { return soulboundLoreFormatStack; }
+    public String getSoulboundConflictTypeMessage() { return soulboundConflictTypeMessage; }
 
     public double[] resolveDropPercents(org.bukkit.entity.Player player, String worldName) {
         PermissionRule selected = resolveEffectiveRule(player, worldName);
@@ -262,13 +273,14 @@ public class ConfigManager {
 
         SoulbindFields soulbind = parseSoulbindFields(section, kind);
         int applyDuration = parseSoulbindApplyDuration(section, kind);
+        int stacks = parseSoulbindStacks(section, kind);
 
         return new ProtectionItemConfig(
                 itemKey, kind, useMmo, useVanilla,
                 mmoItemsType, mmoItemsId, durationMinutes,
                 vanillaMaterial, vanillaName, vanillaLore, customModelData,
                 soulbind.enabled, soulbind.durationMinutes, soulbind.infinite,
-                applyDuration);
+                applyDuration, stacks);
     }
 
     /** Small typed holder for soulbind parse results (avoids mixing boolean/int in an array). */
@@ -289,6 +301,11 @@ public class ConfigManager {
         if (kindRaw.isEmpty()) {
             plugin.getLogger().warning("[InvKeeper] '" + itemKey + "'의 kind 값이 비어있습니다.");
             return null;
+        }
+        // 하위 호환: SOULBIND_TOOL → SOULBIND_TOOL_TIME
+        if ("SOULBIND_TOOL".equalsIgnoreCase(kindRaw)) {
+            plugin.getLogger().info("[InvKeeper] '" + itemKey + "'의 kind가 SOULBIND_TOOL입니다. SOULBIND_TOOL_TIME으로 자동 변환합니다.");
+            kindRaw = "SOULBIND_TOOL_TIME";
         }
         try {
             return ProtectionItemConfig.Kind.valueOf(kindRaw.toUpperCase(Locale.ROOT));
@@ -341,16 +358,31 @@ public class ConfigManager {
     }
 
     private int parseSoulbindApplyDuration(ConfigurationSection section, ProtectionItemConfig.Kind kind) {
-        // Only SOULBIND_TOOL uses apply duration
-        if (kind != ProtectionItemConfig.Kind.SOULBIND_TOOL) {
+        // Only SOULBIND_TOOL_TIME uses apply duration
+        if (kind != ProtectionItemConfig.Kind.SOULBIND_TOOL_TIME) {
             return 0;
         }
-        // If explicitly set, use that value
+        // 하위 호환: soulbind-duration (신규) 우선, soulbind-apply-duration (구) fallback
+        if (section.contains("soulbind-duration")) {
+            return Math.max(parseIntObject(section.get("soulbind-duration"), 0), 0);
+        }
         if (section.contains("soulbind-apply-duration")) {
+            plugin.getLogger().info("[InvKeeper] '" + section.getName() + "'에 soulbind-apply-duration이 사용되었습니다. soulbind-duration 사용을 권장합니다.");
             return Math.max(parseIntObject(section.get("soulbind-apply-duration"), 0), 0);
         }
-        // Fallback: use the tool's own soulbind duration
         return 0;
+    }
+
+    private int parseSoulbindStacks(ConfigurationSection section, ProtectionItemConfig.Kind kind) {
+        // Only SOULBIND_TOOL_STACK uses stacks
+        if (kind != ProtectionItemConfig.Kind.SOULBIND_TOOL_STACK) {
+            return -1;
+        }
+        // Use configured value or default
+        if (section.contains("soulbind-stacks")) {
+            return parseIntObject(section.get("soulbind-stacks"), defaultSoulbindStacks);
+        }
+        return defaultSoulbindStacks;
     }
 
     private static boolean getBooleanSafe(ConfigurationSection section, String path, boolean defaultValue) {

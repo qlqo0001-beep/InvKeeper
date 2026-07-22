@@ -53,14 +53,21 @@ public class PlayerDeathListener implements Listener {
             protectionManager.getPlugin().getLogger().warning("[InvKeeper] 사망 처리 중 오류 발생: " + e.getMessage());
         }
 
-        // Check for expired soulbinds before dropping items
+        // Check for expired soulbinds and decrement stacks before dropping items
         Player player = event.getEntity();
         PlayerInventory inventory = player.getInventory();
+        com.invkeeper.soulbind.SoulbindManager soulbind = protectionManager.getSoulbindManager();
         for (int slot = 0; slot <= 40; slot++) {
             ItemStack item = inventory.getItem(slot);
             if (item != null && !item.getType().isAir()) {
-                if (protectionManager.getSoulbindManager() != null) {
-                    protectionManager.getSoulbindManager().checkAndRemoveExpired(item);
+                if (soulbind != null) {
+                    soulbind.checkAndRemoveExpired(item);
+                    // Decrement stacks for stack-based soulbinds
+                    if (soulbind.getSoulbindType(item) == com.invkeeper.soulbind.SoulbindManager.SoulbindType.STACK) {
+                        soulbind.decrementStacks(item);
+                        // Check if stacks reached 0 and remove if so
+                        soulbind.checkAndRemoveExpired(item);
+                    }
                 }
             }
         }

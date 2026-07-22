@@ -12,4 +12,6 @@ soulbound-cant-pickup: "&c이 아이템은 {owner}의 각인 아이템입니다.
 soulbound-forced-dropped: "&e이 플레이어가 소유자가 아니라서 아이템을 강제로 드랍했습니다."
 soulbound-already-infinite: "&e이 아이템은 이미 무한 각인 상태입니다."
 soulbound-lore-format: "&7각인: &b{owner} &7| 만료: &b{expiry}"
+soulbound-lore-format-stack: "&7각인: &b{owner} &7| 횟수: &b{stacks}"
+soulbound-conflict-type: "&c이 아이템은 {type} 각인 상태입니다. 다른 타입의 각인을 적용할 수 없습니다."
 time-format: "{minutes}분 {seconds_padded}초"
