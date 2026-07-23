@@ -1,4 +1,6 @@
 ﻿# keepInventory 게임룰 강제 고정 옵션
+# true로 두면 플러그인 로드/월드 로드 시마다 모든 월드의 keepInventory를 false로 강제 설정합니다.
+# 인벤토리 복제 버그 방지를 위해 기본값 true 권장합니다.
 force-keep-inventory-false: true
 
 # 영혼각인(소울바인드) 만료 검사를 몇 개의 배치로 나눠서 수행할지 설정합니다.
@@ -28,21 +30,23 @@ soulbind-scan-batches: 5
 # 기본값: Asia/Seoul
 timezone: "Asia/Seoul"
 
-# 스택형 각인의 기본 스택 수
-# 스택형 각인은 사망할 때마다 스택이 1씩 감소하며, 0이 되면 각인이 해제됩니다.
-# - 1: 기본값 (사망 1회 버팀)
-# - 양수: 해당 횟수만큼 사망을 버틸 수 있음
-# - -1: 무한 (사망해도 각인 유지)
-default-soulbind-stacks: 1
+# 아이템에 할당 가능한 최대 스택 수
+# 스택형 각인 도구로 아이템에 각인을 적용할 때, 이 값을 초과하는 스택은
+# 자동으로 이 값으로 제한됩니다.
+# - -1: 무제한 (제한 없음, 기본값)
+# - 양수: 해당 값이 최대 스택 수 (도구의 soulbind-stacks가 이 값보다 크면 제한됨)
+max-soulbind-stack: -1
 
 rules:
   world:
+    # 0~100 사이의 값을 사용하세요. 0은 완전 보호, 100은 모든 아이템/경험치를 드랍합니다.
     default:        { inventory-drop-percent: 0,   exp-drop-percent: 0 }
     world:          { inventory-drop-percent: 50,  exp-drop-percent: 50 }
     world_nether:   { inventory-drop-percent: 70,  exp-drop-percent: 70 }
     world_the_end:  { inventory-drop-percent: 100, exp-drop-percent: 100 }
 
   permissions:
+    # priority가 높은 규칙이 우선 적용됩니다.
     - permission: "invkeeper.drop.1"
       priority: 10
       inventory-drop-percent: 100

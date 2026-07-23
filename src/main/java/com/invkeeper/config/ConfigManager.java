@@ -46,9 +46,10 @@ public class ConfigManager {
     private String soulboundLoreFormat;
     private String soulboundLoreFormatStack;
     private String soulboundConflictTypeMessage;
+    private String soulboundMaxStackMessage;
     private String timezone;
     private int soulbindScanBatches = 5;
-    private int defaultSoulbindStacks = 1;
+    private int maxSoulbindStack = -1;
 
     public ConfigManager(Plugin plugin) {
         this.plugin = Objects.requireNonNull(plugin, "plugin");
@@ -68,7 +69,7 @@ public class ConfigManager {
         forceKeepInventoryFalse = getBooleanSafe(config, "force-keep-inventory-false", true);
         soulbindScanBatches = Math.max(1, getIntSafe(config, "soulbind-scan-batches", 5));
         timezone = getStringSafe(config, "timezone", "Asia/Seoul");
-        defaultSoulbindStacks = parseIntObject(config.get("default-soulbind-stacks"), 1);
+        maxSoulbindStack = parseIntObject(config.get("max-soulbind-stack"), -1);
 
         worldRules.clear();
         defaultWorldRule = new WorldRule(0, 0);
@@ -167,6 +168,7 @@ public class ConfigManager {
         soulboundLoreFormat = getStringSafe(messagesConfig, "soulbound-lore-format", "&7각인: &b{owner} &7| 만료: &b{expiry}");
         soulboundLoreFormatStack = getStringSafe(messagesConfig, "soulbound-lore-format-stack", "&7각인: &b{owner} &7| 횟수: &b{stacks}");
         soulboundConflictTypeMessage = getStringSafe(messagesConfig, "soulbound-conflict-type", "&c이 아이템은 {type} 각인 상태입니다. 다른 타입의 각인을 적용할 수 없습니다.");
+        soulboundMaxStackMessage = getStringSafe(messagesConfig, "soulbound-max-stack", "&c최대 각인 스택({max})을 초과하여 적용할 수 없습니다.");
     }
 
     private void setDefaultMessages() {
@@ -187,6 +189,7 @@ public class ConfigManager {
         soulboundLoreFormat = "&7각인: &b{owner} &7| 만료: &b{expiry}";
         soulboundLoreFormatStack = "&7각인: &b{owner} &7| 횟수: &b{stacks}";
         soulboundConflictTypeMessage = "&c이 아이템은 {type} 각인 상태입니다. 다른 타입의 각인을 적용할 수 없습니다.";
+        soulboundMaxStackMessage = "&c최대 각인 스택({max})을 초과하여 적용할 수 없습니다.";
     }
 
     public Map<String, WorldRule> getWorldRules() { return Collections.unmodifiableMap(worldRules); }
@@ -194,7 +197,7 @@ public class ConfigManager {
     public List<PermissionRule> getPermissionRules() { return Collections.unmodifiableList(permissionRules); }
     public boolean isForceKeepInventoryFalse() { return forceKeepInventoryFalse; }
     public int getSoulbindScanBatches() { return soulbindScanBatches; }
-    public int getDefaultSoulbindStacks() { return defaultSoulbindStacks; }
+    public int getMaxSoulbindStack() { return maxSoulbindStack; }
 
     public String getDeathMessage() { return deathMessage; }
     public String getProtectedMessage() { return protectedMessage; }
@@ -213,6 +216,7 @@ public class ConfigManager {
     public String getSoulboundLoreFormat() { return soulboundLoreFormat; }
     public String getSoulboundLoreFormatStack() { return soulboundLoreFormatStack; }
     public String getSoulboundConflictTypeMessage() { return soulboundConflictTypeMessage; }
+    public String getSoulboundMaxStackMessage() { return soulboundMaxStackMessage; }
 
     public double[] resolveDropPercents(org.bukkit.entity.Player player, String worldName) {
         PermissionRule selected = resolveEffectiveRule(player, worldName);
@@ -378,11 +382,11 @@ public class ConfigManager {
         if (kind != ProtectionItemConfig.Kind.SOULBIND_TOOL_STACK) {
             return -1;
         }
-        // Use configured value or default
+        // Use configured value (max-soulbind-stack is checked at runtime in SoulbindInventoryListener)
         if (section.contains("soulbind-stacks")) {
-            return parseIntObject(section.get("soulbind-stacks"), defaultSoulbindStacks);
+            return parseIntObject(section.get("soulbind-stacks"), 1);
         }
-        return defaultSoulbindStacks;
+        return 1;
     }
 
     private static boolean getBooleanSafe(ConfigurationSection section, String path, boolean defaultValue) {

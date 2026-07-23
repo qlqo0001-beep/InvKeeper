@@ -14,4 +14,5 @@ soulbound-already-infinite: "&e이 아이템은 이미 무한 각인 상태입�
 soulbound-lore-format: "&7각인: &b{owner} &7| 만료: &b{expiry}"
 soulbound-lore-format-stack: "&7각인: &b{owner} &7| 횟수: &b{stacks}"
 soulbound-conflict-type: "&c이 아이템은 {type} 각인 상태입니다. 다른 타입의 각인을 적용할 수 없습니다."
+soulbound-max-stack: "&c최대 각인 스택({max})을 초과하여 적용할 수 없습니다."
 time-format: "{minutes}분 {seconds_padded}초"

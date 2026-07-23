@@ -185,8 +185,15 @@ public class SoulbindInventoryListener implements Listener {
             } else if (toolConfig.getKind().isStackTool()) {
                 // Stack-based soulbind application
                 int stacks = toolConfig.getSoulbindStacks();
+                int maxStack = configManager.getMaxSoulbindStack();
                 
                 if (!soulbindManager.isSoulbound(target)) {
+                    // Check max stack limit for new application
+                    if (maxStack >= 0 && stacks > maxStack) {
+                        MessageUtil.send(player, configManager.getSoulboundMaxStackMessage()
+                                .replace("{max}", String.valueOf(maxStack)));
+                        return;
+                    }
                     soulbindManager.applyStackSoulbind(target, player.getUniqueId(), stacks);
                     soulbindManager.updateLore(target, loreFormat, stackLoreFormat, player.getName(), -1L, stacks);
                     event.setCurrentItem(target);
@@ -201,6 +208,12 @@ public class SoulbindInventoryListener implements Listener {
                     if (stacks < 0) {
                         // Tool applies infinite stacks
                         if (currentStacks >= 0) {
+                            // Check max stack limit
+                            if (maxStack >= 0) {
+                                MessageUtil.send(player, configManager.getSoulboundMaxStackMessage()
+                                        .replace("{max}", String.valueOf(maxStack)));
+                                return;
+                            }
                             soulbindManager.applyStackSoulbind(target, soulbindManager.getOwnerUuid(target), -1);
                             String ownerName = soulbindManager.getOwnerUuid(target) != null
                                     ? getOwnerName(soulbindManager.getOwnerUuid(target))
@@ -216,6 +229,12 @@ public class SoulbindInventoryListener implements Listener {
                         // Tool adds stacks
                         if (currentStacks >= 0) {
                             int newStacks = currentStacks + stacks;
+                            // Check max stack limit
+                            if (maxStack >= 0 && newStacks > maxStack) {
+                                MessageUtil.send(player, configManager.getSoulboundMaxStackMessage()
+                                        .replace("{max}", String.valueOf(maxStack)));
+                                return;
+                            }
                             soulbindManager.applyStackSoulbind(target, soulbindManager.getOwnerUuid(target), newStacks);
                             String ownerName = soulbindManager.getOwnerUuid(target) != null
                                     ? getOwnerName(soulbindManager.getOwnerUuid(target))
