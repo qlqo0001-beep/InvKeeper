@@ -32,15 +32,6 @@ public class SoulbindTransferListener implements Listener {
         return player.hasPermission("invkeeper.admin") || player.hasPermission("invkeeper.soulbind.bypass");
     }
 
-    private String getOwnerName(java.util.UUID ownerUuid) {
-        if (ownerUuid == null) return "?";
-        org.bukkit.entity.Player p = org.bukkit.Bukkit.getPlayer(ownerUuid);
-        if (p != null) return p.getName();
-        org.bukkit.OfflinePlayer off = org.bukkit.Bukkit.getOfflinePlayer(ownerUuid);
-        String name = off.getName();
-        return name != null ? name : ownerUuid.toString();
-    }
-
     /**
      * 호퍼/드로퍼 등 자동 아이템 이동 시 각인 아이템 차단
      */
@@ -106,7 +97,7 @@ public class SoulbindTransferListener implements Listener {
             player.getWorld().dropItemNaturally(player.getLocation(), clicked);
             MessageUtil.send(player, configManager.getSoulboundForcedDroppedMessage());
         } catch (Exception e) {
-            protectionManager.getPlugin().getLogger().warning("[InvKeeper] 인벤토리 이동 처리 중 오류: " + e.getMessage());
+            protectionManager.getPlugin().getLogger().warning("[InvKeeper] 인벤토리 이동 처리 중 오류: " + e.getClass().getSimpleName() + ": " + e.getMessage());
         }
     }
 
@@ -127,7 +118,7 @@ public class SoulbindTransferListener implements Listener {
                     if (owner != null && !owner.equals(player.getUniqueId())) {
                         event.setCancelled(true);
                         MessageUtil.send(player, configManager.getSoulboundCantPickupMessage()
-                                .replace("{owner}", getOwnerName(owner)));
+                                .replace("{owner}", soulbindManager.resolveOwnerName(owner)));
                         return;
                     }
                 }
@@ -142,13 +133,13 @@ public class SoulbindTransferListener implements Listener {
                     if (owner != null && !owner.equals(player.getUniqueId())) {
                         event.setCancelled(true);
                         MessageUtil.send(player, configManager.getSoulboundCantPickupMessage()
-                                .replace("{owner}", getOwnerName(owner)));
+                                .replace("{owner}", soulbindManager.resolveOwnerName(owner)));
                         return;
                     }
                 }
             }
         } catch (Exception e) {
-            protectionManager.getPlugin().getLogger().warning("[InvKeeper] 인벤토리 드래그 처리 중 오류: " + e.getMessage());
+            protectionManager.getPlugin().getLogger().warning("[InvKeeper] 인벤토리 드래그 처리 중 오류: " + e.getClass().getSimpleName() + ": " + e.getMessage());
         }
     }
 }

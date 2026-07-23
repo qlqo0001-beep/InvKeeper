@@ -30,6 +30,14 @@ public class ProtectionManager {
         this.soulbindManager = soulbindManager;
     }
 
+    /**
+     * Re-initialize the MMOItems hook. Call this on /invkeeper reload to pick up
+     * late-loaded MMOItems plugin.
+     */
+    public void refreshMmoHook() {
+        this.mmoItemsHook.refresh();
+    }
+
     public ProtectionResult checkAndConsumeProtection(Player player) {
         if (timedProtectionStore.isActive(player)) {
             return ProtectionResult.TIMED;

@@ -28,15 +28,6 @@ public class SoulbindInventoryListener implements Listener {
         return player.hasPermission("invkeeper.admin") || player.hasPermission("invkeeper.soulbind.bypass");
     }
 
-    private String getOwnerName(java.util.UUID ownerUuid) {
-        if (ownerUuid == null) return "?";
-        org.bukkit.entity.Player p = org.bukkit.Bukkit.getPlayer(ownerUuid);
-        if (p != null) return p.getName();
-        org.bukkit.OfflinePlayer off = org.bukkit.Bukkit.getOfflinePlayer(ownerUuid);
-        String name = off.getName();
-        return name != null ? name : ownerUuid.toString();
-    }
-
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
         try {
@@ -106,7 +97,7 @@ public class SoulbindInventoryListener implements Listener {
             java.util.UUID targetOwner = soulbindManager.getOwnerUuid(target);
             boolean canModify = targetOwner == null || targetOwner.equals(player.getUniqueId()) || canBypass(player);
             if (!canModify) {
-                MessageUtil.send(player, configManager.getSoulboundCantPickupMessage().replace("{owner}", getOwnerName(targetOwner)));
+                MessageUtil.send(player, configManager.getSoulboundCantPickupMessage().replace("{owner}", soulbindManager.resolveOwnerName(targetOwner)));
                 event.setCancelled(true);
                 return;
             }
@@ -168,7 +159,7 @@ public class SoulbindInventoryListener implements Listener {
                         // Upgrade to infinite
                         soulbindManager.applySoulbind(target, soulbindManager.getOwnerUuid(target), -1L);
                         String ownerName = soulbindManager.getOwnerUuid(target) != null
-                                ? getOwnerName(soulbindManager.getOwnerUuid(target))
+                                ? soulbindManager.resolveOwnerName(soulbindManager.getOwnerUuid(target))
                                 : player.getName();
                         soulbindManager.updateLore(target, loreFormat, ownerName, -1L);
                         event.setCurrentItem(target);
@@ -187,7 +178,7 @@ public class SoulbindInventoryListener implements Listener {
                         long newExpiry = currentExpiry + (long) applyDuration * 60L * 1000L;
                         soulbindManager.applySoulbind(target, soulbindManager.getOwnerUuid(target), newExpiry);
                         String ownerName = soulbindManager.getOwnerUuid(target) != null
-                                ? getOwnerName(soulbindManager.getOwnerUuid(target))
+                                ? soulbindManager.resolveOwnerName(soulbindManager.getOwnerUuid(target))
                                 : player.getName();
                         soulbindManager.updateLore(target, loreFormat, ownerName, newExpiry);
                         event.setCurrentItem(target);
@@ -237,7 +228,7 @@ public class SoulbindInventoryListener implements Listener {
                         }
                         soulbindManager.applyStackSoulbind(target, soulbindManager.getOwnerUuid(target), -1);
                         String ownerName = soulbindManager.getOwnerUuid(target) != null
-                                ? getOwnerName(soulbindManager.getOwnerUuid(target))
+                                ? soulbindManager.resolveOwnerName(soulbindManager.getOwnerUuid(target))
                                 : player.getName();
                         soulbindManager.updateLore(target, loreFormat, stackLoreFormat, ownerName, -1L, -1);
                         event.setCurrentItem(target);
@@ -261,7 +252,7 @@ public class SoulbindInventoryListener implements Listener {
                         }
                         soulbindManager.applyStackSoulbind(target, soulbindManager.getOwnerUuid(target), newStacks);
                         String ownerName = soulbindManager.getOwnerUuid(target) != null
-                                ? getOwnerName(soulbindManager.getOwnerUuid(target))
+                                ? soulbindManager.resolveOwnerName(soulbindManager.getOwnerUuid(target))
                                 : player.getName();
                         soulbindManager.updateLore(target, loreFormat, stackLoreFormat, ownerName, -1L, newStacks);
                         event.setCurrentItem(target);
@@ -273,7 +264,7 @@ public class SoulbindInventoryListener implements Listener {
                 }
             }
         } catch (Exception e) {
-            protectionManager.getPlugin().getLogger().warning("[InvKeeper] 인벤토리 클릭 처리 중 오류: " + e.getMessage());
+            protectionManager.getPlugin().getLogger().warning("[InvKeeper] 인벤토리 클릭 처리 중 오류: " + e.getClass().getSimpleName() + ": " + e.getMessage());
         }
     }
     

@@ -344,4 +344,17 @@ public final class SoulbindManager {
         }
         return MessageUtil.formatDuration(rem, format);
     }
+
+    /**
+     * Resolve an owner UUID to a display name.
+     * Tries online player name first, then offline player name, then UUID string as fallback.
+     */
+    public String resolveOwnerName(java.util.UUID ownerUuid) {
+        if (ownerUuid == null) return "?";
+        org.bukkit.entity.Player p = org.bukkit.Bukkit.getPlayer(ownerUuid);
+        if (p != null) return p.getName();
+        org.bukkit.OfflinePlayer off = org.bukkit.Bukkit.getOfflinePlayer(ownerUuid);
+        String name = off.getName();
+        return name != null ? name : ownerUuid.toString();
+    }
 }

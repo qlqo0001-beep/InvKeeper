@@ -62,6 +62,12 @@ public class InvKeeperPlugin extends JavaPlugin {
 
         boolean mmoInstalled = getServer().getPluginManager().getPlugin("MMOItems") != null;
         getLogger().info("MMOItems 설치 여부: " + (mmoInstalled ? "설치됨" : "미설치"));
+
+        // Summary log
+        getLogger().info("월드 규칙 " + configManager.getWorldRules().size() + "개, "
+                + "권한 규칙 " + configManager.getPermissionRules().size() + "개, "
+                + "보호 아이템 " + configManager.getProtectionItemConfigs().size() + "개 로드 완료");
+        getLogger().info("Plugin Enabled");
     }
 
     @Override

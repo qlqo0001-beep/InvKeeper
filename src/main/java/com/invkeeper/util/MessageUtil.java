@@ -49,6 +49,8 @@ public final class MessageUtil {
         try {
             zoneId = java.time.ZoneId.of(timezoneId);
         } catch (java.time.zone.ZoneRulesException | IllegalArgumentException e) {
+            java.util.logging.Logger.getLogger(MessageUtil.class.getName())
+                    .warning("[InvKeeper] 잘못된 타임존: '" + timezoneId + "', 시스템 기본 타임존 사용");
             zoneId = java.time.ZoneId.systemDefault();
         }
     }

@@ -13,8 +13,9 @@ import java.util.List;
 import java.util.logging.Logger;
 
 public class MMOItemsHook {
-    private final boolean available;
+    private boolean available;
     private final Logger logger;
+    private final Plugin plugin;
     private enum ApiMode { LIVE_MMO_ITEM, NBT_ITEM }
     private ApiMode apiMode;
     private Constructor<?> mmoItemConstructor;
@@ -27,7 +28,18 @@ public class MMOItemsHook {
     private Method getMMOItemMethod;
 
     public MMOItemsHook(Plugin plugin) {
+        this(plugin, true);
+    }
+
+    public MMOItemsHook(Plugin plugin, boolean initialLoad) {
+        this.plugin = plugin;
         this.logger = plugin.getLogger();
+        if (initialLoad) {
+            initialize(plugin);
+        }
+    }
+
+    private void initialize(Plugin plugin) {
         Plugin mmoPlugin = plugin.getServer().getPluginManager().getPlugin("MMOItems");
         if (mmoPlugin == null) {
             this.available = false;
@@ -157,6 +169,14 @@ public class MMOItemsHook {
         return available;
     }
 
+    /**
+     * Re-initialize the MMOItems hook. Call this on /invkeeper reload to pick up
+     * late-loaded MMOItems plugin.
+     */
+    public void refresh() {
+        initialize(plugin);
+    }
+
     public boolean itemExists(String type, String id) {
         if (!available || type == null || type.isBlank() || id == null || id.isBlank()) {
             return false;
@@ -226,6 +246,9 @@ public class MMOItemsHook {
     public boolean giveItemByCommand(org.bukkit.entity.Player target, String type, String id, int amount) {
         if (!available || target == null || type == null || type.isBlank() || id == null || id.isBlank()) {
             return false;
+        }
+        if (type.contains(" ") || id.contains(" ")) {
+            logger.warning("[InvKeeper] MMOItems 지급 시 type/id에 공백이 포함되어 있습니다. type='" + type + "', id='" + id + "'");
         }
         try {
             String command = "mi give " + type + " " + id + " " + target.getName();

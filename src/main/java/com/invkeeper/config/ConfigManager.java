@@ -85,6 +85,10 @@ public class ConfigManager {
                 WorldRule rule = new WorldRule(inventory, exp);
                 if ("default".equalsIgnoreCase(key)) defaultWorldRule = rule;
                 worldRules.put(key, rule);
+                // Warn if world name doesn't exist (but don't block - world might not be loaded yet)
+                if (!"default".equalsIgnoreCase(key) && Bukkit.getWorld(key) == null) {
+                    Bukkit.getLogger().warning("[InvKeeper] 월드 규칙 '" + key + "'에 해당하는 월드가 현재 로드되어 있지 않습니다. (나중에 로드될 수 있음)");
+                }
             }
         }
 
@@ -421,10 +425,13 @@ public class ConfigManager {
         } catch (Exception e) { return List.of(); }
     }
 
-    private static Material parseMaterial(String raw, Material fallback) {
+    private Material parseMaterial(String raw, Material fallback) {
         if (raw == null || raw.isBlank()) return fallback;
         try { return Material.valueOf(raw.trim().toUpperCase()); }
-        catch (IllegalArgumentException e) { return fallback; }
+        catch (IllegalArgumentException e) {
+            plugin.getLogger().warning("[InvKeeper] 잘못된 Material 이름: '" + raw + "', 기본값 '" + fallback + "' 사용");
+            return fallback;
+        }
     }
 
     private static Integer parseOptionalInt(ConfigurationSection section, String path) {
