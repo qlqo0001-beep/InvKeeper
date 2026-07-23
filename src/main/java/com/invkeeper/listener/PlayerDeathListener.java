@@ -146,12 +146,17 @@ public class PlayerDeathListener implements Listener {
         return dropAmount;
     }
 
-    private static int countOccupiedSlots(Player player) {
+    private int countOccupiedSlots(Player player) {
         int occupied = 0;
         PlayerInventory inventory = player.getInventory();
+        com.invkeeper.soulbind.SoulbindManager soulbind = protectionManager.getSoulbindManager();
         for (int slot = 0; slot < 41; slot++) {
             ItemStack item = inventory.getItem(slot);
             if (item != null && !item.getType().isAir()) {
+                // Exclude soulbound items to match dropInventory() logic
+                if (soulbind != null && soulbind.isSoulbound(item)) {
+                    continue;
+                }
                 occupied++;
             }
         }

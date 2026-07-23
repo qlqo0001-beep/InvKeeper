@@ -6,9 +6,9 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class ProtectionAlertManager implements Runnable {
     private static final long FIVE_MINUTES_MS = 300_000L;
@@ -16,7 +16,7 @@ public class ProtectionAlertManager implements Runnable {
 
     private final ProtectionManager protectionManager;
     private final ConfigManager configManager;
-    private final Map<UUID, ReminderState> reminderStates = new ConcurrentHashMap<>();
+    private final Map<UUID, ReminderState> reminderStates = new HashMap<>();
     private final int taskId;
     // Read once at construction; reloadAlertManager() recreates this class after
     // ConfigManager.load() runs, so /invkeeper reload picks up config changes.

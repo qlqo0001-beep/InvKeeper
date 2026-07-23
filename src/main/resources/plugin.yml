@@ -13,6 +13,9 @@ commands:
     aliases: [ik]
 
 permissions:
+  invkeeper.status:
+    description: 자신의 InvKeeper 보호 상태를 확인할 수 있는 권한
+    default: true
   invkeeper.admin:
     description: InvKeeper 관리 권한 (reload, give, soulbind unbind/inspect)
     default: op
@@ -27,7 +30,4 @@ permissions:
     default: false
   invkeeper.soulbind.bypass:
     description: 다른 플레이어의 각인 아이템을 획득/이동할 수 있는 권한
-    default: false
-  invkeeper.soulbind.give:
-    description: 각인 아이템을 지급할 수 있는 권한
     default: false

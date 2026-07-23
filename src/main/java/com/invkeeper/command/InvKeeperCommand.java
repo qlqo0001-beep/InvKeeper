@@ -208,6 +208,10 @@ public class InvKeeperCommand implements CommandExecutor, TabCompleter {
     }
 
     private boolean handleStatus(CommandSender sender) {
+        if (!sender.hasPermission("invkeeper.status")) {
+            MessageUtil.send(sender, "&c권한이 없습니다.");
+            return true;
+        }
         if (!(sender instanceof Player player)) {
             MessageUtil.send(sender, "&c플레이어만 사용할 수 있는 명령어입니다.");
             return true;

@@ -53,6 +53,7 @@
 
 | 권한 | 설명 |
 |------|------|
+| `invkeeper.status` | 자신의 InvKeeper 보호 상태를 확인할 수 있음 |
 | `invkeeper.admin` | 모든 관리자 명령어 사용 및 각인 우회 |
 | `invkeeper.soulbind.bypass` | 다른 플레이어의 각인된 아이템도 자유롭게 다룰 수 있음 |
 | `invkeeper.drop.donor` | 후원자 등급 사망 드랍 규칙 적용 (우선순위 10) |
