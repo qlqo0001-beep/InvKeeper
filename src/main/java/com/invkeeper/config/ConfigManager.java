@@ -51,6 +51,7 @@ public class ConfigManager {
     private int soulbindScanBatches = 5;
     private int maxSoulbindStack = -1;
     private int soulbindPickupMessageCooldownSeconds = 5;
+    private int soulbindUseMessageCooldownSeconds = 3;
 
     public ConfigManager(Plugin plugin) {
         this.plugin = Objects.requireNonNull(plugin, "plugin");
@@ -72,6 +73,7 @@ public class ConfigManager {
         timezone = getStringSafe(config, "timezone", "Asia/Seoul");
         maxSoulbindStack = parseIntObject(config.get("max-soulbind-stack"), -1);
         soulbindPickupMessageCooldownSeconds = Math.max(0, getIntSafe(config, "soulbind-pickup-message-cooldown-seconds", 5));
+        soulbindUseMessageCooldownSeconds = Math.max(0, getIntSafe(config, "soulbind-use-message-cooldown-seconds", 3));
 
         worldRules.clear();
         defaultWorldRule = new WorldRule(0, 0);
@@ -205,6 +207,7 @@ public class ConfigManager {
     public int getSoulbindScanBatches() { return soulbindScanBatches; }
     public int getMaxSoulbindStack() { return maxSoulbindStack; }
     public int getSoulbindPickupMessageCooldownSeconds() { return soulbindPickupMessageCooldownSeconds; }
+    public int getSoulbindUseMessageCooldownSeconds() { return soulbindUseMessageCooldownSeconds; }
 
     public String getDeathMessage() { return deathMessage; }
     public String getProtectedMessage() { return protectedMessage; }

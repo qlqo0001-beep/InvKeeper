@@ -1,5 +1,5 @@
 name: InvKeeper
-version: '1.3.5'
+version: '1.3.6'
 main: com.invkeeper.InvKeeperPlugin
 api-version: '1.21'
 softdepend: [MMOItems]
@@ -19,14 +19,38 @@ permissions:
   invkeeper.admin:
     description: InvKeeper 관리 권한 (reload, give, soulbind unbind/inspect)
     default: op
-  invkeeper.drop.donor:
-    description: 후원자 등급 사망 드랍 규칙 적용 권한
+  invkeeper.drop.1:
+    description: 드랍 규칙 등급 1 적용 권한
     default: false
-  invkeeper.drop.vip:
-    description: VIP 등급 사망 드랍 규칙 적용 권한
+  invkeeper.drop.2:
+    description: 드랍 규칙 등급 2 적용 권한
     default: false
-  invkeeper.drop.admin:
-    description: 관리자 등급 사망 드랍 규칙 적용 권한
+  invkeeper.drop.3:
+    description: 드랍 규칙 등급 3 적용 권한
+    default: false
+  invkeeper.drop.4:
+    description: 드랍 규칙 등급 4 적용 권한
+    default: false
+  invkeeper.drop.5:
+    description: 드랍 규칙 등급 5 적용 권한
+    default: false
+  invkeeper.drop.6:
+    description: 드랍 규칙 등급 6 적용 권한
+    default: false
+  invkeeper.drop.7:
+    description: 드랍 규칙 등급 7 적용 권한
+    default: false
+  invkeeper.drop.8:
+    description: 드랍 규칙 등급 8 적용 권한
+    default: false
+  invkeeper.drop.9:
+    description: 드랍 규칙 등급 9 적용 권한
+    default: false
+  invkeeper.drop.10:
+    description: 드랍 규칙 등급 10 적용 권한
+    default: false
+  invkeeper.drop.11:
+    description: 드랍 규칙 등급 11 적용 권한
     default: false
   invkeeper.soulbind.bypass:
     description: 다른 플레이어의 각인 아이템을 획득/이동할 수 있는 권한

@@ -7,6 +7,7 @@ import com.invkeeper.listener.ProtectionItemUseListener;
 import com.invkeeper.listener.SoulbindInventoryListener;
 import com.invkeeper.listener.SoulbindPickupListener;
 import com.invkeeper.listener.SoulbindTransferListener;
+import com.invkeeper.listener.SoulbindUseListener;
 import com.invkeeper.listener.WorldLoadListener;
 import com.invkeeper.protection.ProtectionAlertManager;
 import com.invkeeper.protection.ProtectionManager;
@@ -49,6 +50,7 @@ public class InvKeeperPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new com.invkeeper.listener.SoulbindPickupListener(protectionManager, configManager, this), this);
         getServer().getPluginManager().registerEvents(new com.invkeeper.listener.SoulbindInventoryListener(protectionManager, configManager), this);
         getServer().getPluginManager().registerEvents(new com.invkeeper.listener.SoulbindTransferListener(protectionManager, configManager), this);
+        getServer().getPluginManager().registerEvents(new com.invkeeper.listener.SoulbindUseListener(protectionManager, configManager), this);
 
         // Create and store reference to ProtectionAlertManager
         protectionAlertManager = new ProtectionAlertManager(this, protectionManager, configManager);
