@@ -126,7 +126,14 @@ public class InvKeeperCommand implements CommandExecutor, TabCompleter {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            return filter(List.of("status", "reload", "give", "soulbind"), args[0]);
+            List<String> options = new ArrayList<>();
+            options.add("status");
+            if (sender.hasPermission("invkeeper.admin")) {
+                options.add("reload");
+                options.add("give");
+                options.add("soulbind");
+            }
+            return filter(options, args[0]);
         }
         if (args.length == 2) {
             String first = args[0].toLowerCase(Locale.ROOT);
