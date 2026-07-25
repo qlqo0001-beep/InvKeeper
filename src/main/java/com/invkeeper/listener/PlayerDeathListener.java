@@ -61,10 +61,24 @@ public class PlayerDeathListener implements Listener {
             ItemStack item = inventory.getItem(slot);
             if (item != null && !item.getType().isAir()) {
                 if (soulbind != null) {
+                    // Remove expired soulbinds first
                     soulbind.checkAndRemoveExpired(item);
-                    // Decrement stacks for stack-based soulbinds
-                    if (soulbind.getSoulbindType(item) == com.invkeeper.soulbind.SoulbindManager.SoulbindType.STACK) {
+                    
+                    // For active stack-based soulbinds, decrement stacks on death
+                    if (soulbind.isSoulbound(item) && 
+                        soulbind.getSoulbindType(item) == com.invkeeper.soulbind.SoulbindManager.SoulbindType.STACK) {
+                        // Only decrement if the item is still soulbound (not expired)
+                        java.util.UUID ownerUuid = soulbind.getOwnerUuid(item);
+                        String ownerName = ownerUuid != null ? soulbind.resolveOwnerName(ownerUuid) : player.getName();
+                        long expiryMillis = soulbind.getExpiryMillis(item);
+                        int oldStacks = soulbind.getStacks(item);
                         soulbind.decrementStacks(item);
+                        int newStacks = soulbind.getStacks(item);
+                        // Update lore to reflect new stack count
+                        soulbind.updateLore(item, 
+                            configManager.getSoulboundLoreFormat(),
+                            configManager.getSoulboundLoreFormatStack(),
+                            ownerName, expiryMillis, newStacks);
                         // Check if stacks reached 0 and remove if so
                         soulbind.checkAndRemoveExpired(item);
                     }
