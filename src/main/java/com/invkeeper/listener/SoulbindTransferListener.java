@@ -117,7 +117,11 @@ public class SoulbindTransferListener implements Listener {
                     UUID owner = soulbindManager.getOwnerUuid(oldCursor);
                     if (owner != null && !owner.equals(player.getUniqueId())) {
                         event.setCancelled(true);
+                        String itemName = oldCursor.getItemMeta() != null && oldCursor.getItemMeta().hasDisplayName()
+                                ? oldCursor.getItemMeta().getDisplayName()
+                                : oldCursor.getType().name();
                         MessageUtil.send(player, configManager.getSoulboundCantPickupMessage()
+                                .replace("{item_name}", itemName)
                                 .replace("{owner}", soulbindManager.resolveOwnerName(owner)));
                         return;
                     }
@@ -132,7 +136,11 @@ public class SoulbindTransferListener implements Listener {
                     UUID owner = soulbindManager.getOwnerUuid(item);
                     if (owner != null && !owner.equals(player.getUniqueId())) {
                         event.setCancelled(true);
+                        String itemName = item.getItemMeta() != null && item.getItemMeta().hasDisplayName()
+                                ? item.getItemMeta().getDisplayName()
+                                : item.getType().name();
                         MessageUtil.send(player, configManager.getSoulboundCantPickupMessage()
+                                .replace("{item_name}", itemName)
                                 .replace("{owner}", soulbindManager.resolveOwnerName(owner)));
                         return;
                     }

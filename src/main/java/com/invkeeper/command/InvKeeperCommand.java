@@ -85,6 +85,10 @@ public class InvKeeperCommand implements CommandExecutor, TabCompleter {
             plugin.reloadAlertManager();
             protectionManager.refreshMmoHook();
             MessageUtil.send(sender, "&aInvKeeper 설정을 다시 불러왔습니다.");
+            // Summary log
+            MessageUtil.send(sender, "&f월드 규칙 " + configManager.getWorldRules().size() + "개, "
+                    + "권한 규칙 " + configManager.getPermissionRules().size() + "개, "
+                    + "보호 아이템 " + configManager.getProtectionItemConfigs().size() + "개 로드 완료");
         } catch (Exception e) {
             MessageUtil.send(sender, "&c리로드 중 오류가 발생했습니다: " + e.getMessage());
             protectionManager.getPlugin().getLogger().warning("[InvKeeper] 리로드 중 오류: " + e.getMessage());

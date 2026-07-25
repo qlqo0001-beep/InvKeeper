@@ -63,6 +63,12 @@ public class InvKeeperPlugin extends JavaPlugin {
         boolean mmoInstalled = getServer().getPluginManager().getPlugin("MMOItems") != null;
         getLogger().info("MMOItems 설치 여부: " + (mmoInstalled ? "설치됨" : "미설치"));
 
+        // Initialize bStats metrics
+        int pluginId = 32889;
+        org.bstats.bukkit.Metrics metrics = new org.bstats.bukkit.Metrics(this, pluginId);
+        metrics.addCustomChart(new org.bstats.charts.SimplePie("mmoitems_installed", () -> String.valueOf(mmoInstalled)));
+        getLogger().info("bStats 메트릭스 초기화 완료 (플러그인 ID: " + pluginId + ")");
+
         // Summary log
         getLogger().info("월드 규칙 " + configManager.getWorldRules().size() + "개, "
                 + "권한 규칙 " + configManager.getPermissionRules().size() + "개, "

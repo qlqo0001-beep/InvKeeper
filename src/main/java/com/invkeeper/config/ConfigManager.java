@@ -50,6 +50,7 @@ public class ConfigManager {
     private String timezone;
     private int soulbindScanBatches = 5;
     private int maxSoulbindStack = -1;
+    private int soulbindPickupMessageCooldownSeconds = 5;
 
     public ConfigManager(Plugin plugin) {
         this.plugin = Objects.requireNonNull(plugin, "plugin");
@@ -70,6 +71,7 @@ public class ConfigManager {
         soulbindScanBatches = Math.max(1, getIntSafe(config, "soulbind-scan-batches", 5));
         timezone = getStringSafe(config, "timezone", "Asia/Seoul");
         maxSoulbindStack = parseIntObject(config.get("max-soulbind-stack"), -1);
+        soulbindPickupMessageCooldownSeconds = Math.max(0, getIntSafe(config, "soulbind-pickup-message-cooldown-seconds", 5));
 
         worldRules.clear();
         defaultWorldRule = new WorldRule(0, 0);
@@ -166,7 +168,7 @@ public class ConfigManager {
         soulboundAppliedMessage = getStringSafe(messagesConfig, "soulbound-applied", "&a아이템에 영혼각인이 적용되었습니다. (대상: {owner}, 지속시간: {remaining})");
         soulboundExtendedMessage = getStringSafe(messagesConfig, "soulbound-extended", "&a이미 각인된 아이템의 유지시간이 연장되었습니다. (남은 시간: {remaining})");
         soulboundUnboundMessage = getStringSafe(messagesConfig, "soulbound-unbound", "&a아이템의 영혼각인이 해제되었습니다.");
-        soulboundCantPickupMessage = getStringSafe(messagesConfig, "soulbound-cant-pickup", "&c이 아이템은 {owner}의 각인 아이템입니다. 획득할 수 없습니다.");
+        soulboundCantPickupMessage = getStringSafe(messagesConfig, "soulbound-cant-pickup", "&c{item_name}은(는) {owner}의 각인 아이템입니다. 획득할 수 없습니다.");
         soulboundForcedDroppedMessage = getStringSafe(messagesConfig, "soulbound-forced-dropped", "&e이 플레이어가 소유자가 아니라서 아이템을 강제로 드랍했습니다.");
         soulboundAlreadyInfiniteMessage = getStringSafe(messagesConfig, "soulbound-already-infinite", "&e이 아이템은 이미 무한 각인 상태입니다.");
         soulboundLoreFormat = getStringSafe(messagesConfig, "soulbound-lore-format", "&7각인: &b{owner} &7| 만료: &b{expiry}");
@@ -187,7 +189,7 @@ public class ConfigManager {
         soulboundAppliedMessage = "&a아이템에 영혼각인이 적용되었습니다. (대상: {owner}, 지속시간: {remaining})";
         soulboundExtendedMessage = "&a이미 각인된 아이템의 유지시간이 연장되었습니다. (남은 시간: {remaining})";
         soulboundUnboundMessage = "&a아이템의 영혼각인이 해제되었습니다.";
-        soulboundCantPickupMessage = "&c이 아이템은 {owner}의 각인 아이템입니다. 획득할 수 없습니다.";
+        soulboundCantPickupMessage = "&c{item_name}은(는) {owner}의 각인 아이템입니다. 획득할 수 없습니다.";
         soulboundForcedDroppedMessage = "&e이 플레이어가 소유자가 아니라서 아이템을 강제로 드랍했습니다.";
         soulboundAlreadyInfiniteMessage = "&e이 아이템은 이미 무한 각인 상태입니다.";
         soulboundLoreFormat = "&7각인: &b{owner} &7| 만료: &b{expiry}";
@@ -202,6 +204,7 @@ public class ConfigManager {
     public boolean isForceKeepInventoryFalse() { return forceKeepInventoryFalse; }
     public int getSoulbindScanBatches() { return soulbindScanBatches; }
     public int getMaxSoulbindStack() { return maxSoulbindStack; }
+    public int getSoulbindPickupMessageCooldownSeconds() { return soulbindPickupMessageCooldownSeconds; }
 
     public String getDeathMessage() { return deathMessage; }
     public String getProtectedMessage() { return protectedMessage; }

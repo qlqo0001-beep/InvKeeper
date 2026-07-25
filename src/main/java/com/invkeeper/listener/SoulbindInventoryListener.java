@@ -97,7 +97,12 @@ public class SoulbindInventoryListener implements Listener {
             java.util.UUID targetOwner = soulbindManager.getOwnerUuid(target);
             boolean canModify = targetOwner == null || targetOwner.equals(player.getUniqueId()) || canBypass(player);
             if (!canModify) {
-                MessageUtil.send(player, configManager.getSoulboundCantPickupMessage().replace("{owner}", soulbindManager.resolveOwnerName(targetOwner)));
+                String itemName = target.getItemMeta() != null && target.getItemMeta().hasDisplayName()
+                        ? target.getItemMeta().getDisplayName()
+                        : target.getType().name();
+                MessageUtil.send(player, configManager.getSoulboundCantPickupMessage()
+                        .replace("{item_name}", itemName)
+                        .replace("{owner}", soulbindManager.resolveOwnerName(targetOwner)));
                 event.setCancelled(true);
                 return;
             }

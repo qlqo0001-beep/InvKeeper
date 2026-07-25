@@ -53,35 +53,16 @@ public class PlayerDeathListener implements Listener {
             protectionManager.getPlugin().getLogger().warning("[InvKeeper] 사망 처리 중 오류 발생: " + e.getMessage());
         }
 
-        // Check for expired soulbinds and decrement stacks before dropping items
+        // Phase 1: Remove expired TIME-based soulbinds before drop calculation
         Player player = event.getEntity();
         PlayerInventory inventory = player.getInventory();
         com.invkeeper.soulbind.SoulbindManager soulbind = protectionManager.getSoulbindManager();
-        for (int slot = 0; slot <= 40; slot++) {
-            ItemStack item = inventory.getItem(slot);
-            if (item != null && !item.getType().isAir()) {
-                if (soulbind != null) {
-                    // Remove expired soulbinds first
+        if (soulbind != null) {
+            for (int slot = 0; slot <= 40; slot++) {
+                ItemStack item = inventory.getItem(slot);
+                if (item == null || item.getType().isAir()) continue;
+                if (soulbind.getSoulbindType(item) == com.invkeeper.soulbind.SoulbindManager.SoulbindType.TIME) {
                     soulbind.checkAndRemoveExpired(item);
-                    
-                    // For active stack-based soulbinds, decrement stacks on death
-                    if (soulbind.isSoulbound(item) && 
-                        soulbind.getSoulbindType(item) == com.invkeeper.soulbind.SoulbindManager.SoulbindType.STACK) {
-                        // Only decrement if the item is still soulbound (not expired)
-                        java.util.UUID ownerUuid = soulbind.getOwnerUuid(item);
-                        String ownerName = ownerUuid != null ? soulbind.resolveOwnerName(ownerUuid) : player.getName();
-                        long expiryMillis = soulbind.getExpiryMillis(item);
-                        int oldStacks = soulbind.getStacks(item);
-                        soulbind.decrementStacks(item);
-                        int newStacks = soulbind.getStacks(item);
-                        // Update lore to reflect new stack count
-                        soulbind.updateLore(item, 
-                            configManager.getSoulboundLoreFormat(),
-                            configManager.getSoulboundLoreFormatStack(),
-                            ownerName, expiryMillis, newStacks);
-                        // Check if stacks reached 0 and remove if so
-                        soulbind.checkAndRemoveExpired(item);
-                    }
                 }
             }
         }
@@ -95,6 +76,29 @@ public class PlayerDeathListener implements Listener {
         int droppedExp = dropExperience(player, expPercent);
 
         int actualLostPercent = totalOccupiedSlots <= 0 ? 0 : clamp((int) Math.round(droppedItems * 100.0 / totalOccupiedSlots), 0, 100);
+
+        // Phase 3: Decrement STACK soulbinds after drop calculation (item was protected this death)
+        if (soulbind != null) {
+            for (int slot = 0; slot <= 40; slot++) {
+                ItemStack item = inventory.getItem(slot);
+                if (item == null || item.getType().isAir()) continue;
+                if (soulbind.getSoulbindType(item) == com.invkeeper.soulbind.SoulbindManager.SoulbindType.STACK) {
+                    java.util.UUID ownerUuid = soulbind.getOwnerUuid(item);
+                    String ownerName = ownerUuid != null ? soulbind.resolveOwnerName(ownerUuid) : player.getName();
+                    long expiryMillis = soulbind.getExpiryMillis(item);
+                    int newStacks = soulbind.getStacks(item);
+                    soulbind.decrementStacks(item);
+                    newStacks = soulbind.getStacks(item);
+                    // Update lore to reflect new stack count
+                    soulbind.updateLore(item, 
+                        configManager.getSoulboundLoreFormat(),
+                        configManager.getSoulboundLoreFormatStack(),
+                        ownerName, expiryMillis, newStacks);
+                    // Check if stacks reached 0 and remove if so
+                    soulbind.checkAndRemoveExpired(item);
+                }
+            }
+        }
 
         MessageUtil.send(player, configManager.getDeathMessage()
                 .replace("{inv_percent}", String.valueOf(actualLostPercent))
