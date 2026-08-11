@@ -1,3 +1,6 @@
+<img width="2400" height="1260" alt="invkeeper_banner" src="https://github.com/user-attachments/assets/f6e4ca3a-9a45-4c37-af81-38068a0a47be" />
+
+
 # InvKeeper
 
 > Paper 1.21+ 기반 인벤토리 보호·무덤(Grave)·영혼각인(소울바인드) 플러그인
