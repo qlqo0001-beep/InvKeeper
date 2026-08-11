@@ -53,6 +53,37 @@ public class ConfigManager {
     private int soulbindPickupMessageCooldownSeconds = 5;
     private int soulbindUseMessageCooldownSeconds = 3;
 
+    // ── Grave settings ──────────────────────────────────────
+    private boolean graveEnabled = true;
+    private GraveContainerConfig graveContainerConfig;
+    private String graveTitleFormat = "{player} 의 무덤 {death_time}";
+    private String graveDeathTimeFormat = "{year}-{month}-{day} {hour}:{minute}";
+    private int graveMaxPerPlayer = 5;
+    private boolean graveExpireEnabled = true;
+    private int graveExpireDefaultSeconds = 3600;
+    private final List<GraveExpireRule> graveExpireRules = new ArrayList<>();
+    private GraveHologramConfig graveHologramConfig;
+    private int graveHistoryRetentionDays = 30;
+    private int graveHistoryMaxEntries = 50;
+    private List<String> graveDisabledWorlds = new ArrayList<>();
+    private GraveGuiConfig graveGuiConfig;
+    // ── Grave messages ─────────────────────────────────────
+    private String graveCreatedMessage;
+    private String graveNotOwnerMessage;
+    private String graveOpenedMessage;
+    private String graveMaxReachedMessage;
+    private String graveExpiredMessage;
+    private String graveFullyRecoveredMessage;
+    private String graveLootStartCasterMessage;
+    private String graveLootStartOwnerAlertMessage;
+    private String graveLootCancelledMessage;
+    private String graveLootAlreadyInProgressMessage;
+    private String graveLootSelfBlockedMessage;
+    private String graveLootCompleteCasterMessage;
+    private String graveLootItemRequiredMessage;
+    private String graveHistoryEmptiedMessage;
+    private String graveHistoryNoItemsMessage;
+
     public ConfigManager(Plugin plugin) {
         this.plugin = Objects.requireNonNull(plugin, "plugin");
     }
@@ -61,6 +92,8 @@ public class ConfigManager {
         loadConfig();
         loadItems();
         loadMessages();
+        loadGraveMessages();
+        loadGraveGuiConfig();
         MessageUtil.setTimezone(timezone);
     }
 
@@ -122,6 +155,7 @@ public class ConfigManager {
             }
         }
         permissionRules.sort((left, right) -> Integer.compare(right.getPriority(), left.getPriority()));
+        loadGraveConfig(config);
     }
 
     private void loadItems() {
@@ -177,6 +211,7 @@ public class ConfigManager {
         soulboundLoreFormatStack = getStringSafe(messagesConfig, "soulbound-lore-format-stack", "&7각인: &b{owner} &7| 횟수: &b{stacks}");
         soulboundConflictTypeMessage = getStringSafe(messagesConfig, "soulbound-conflict-type", "&c이 아이템은 {type} 각인 상태입니다. 다른 타입의 각인을 적용할 수 없습니다.");
         soulboundMaxStackMessage = getStringSafe(messagesConfig, "soulbound-max-stack", "&c최대 각인 스택({max})을 초과하여 적용할 수 없습니다.");
+        loadGraveMessages();
     }
 
     private void setDefaultMessages() {
@@ -227,6 +262,36 @@ public class ConfigManager {
     public String getSoulboundLoreFormatStack() { return soulboundLoreFormatStack; }
     public String getSoulboundConflictTypeMessage() { return soulboundConflictTypeMessage; }
     public String getSoulboundMaxStackMessage() { return soulboundMaxStackMessage; }
+    // ── Grave getters ────────────────────────────────────────
+    public boolean isGraveEnabled() { return graveEnabled; }
+    public GraveContainerConfig getGraveContainerConfig() { return graveContainerConfig; }
+    public String getGraveTitleFormat() { return graveTitleFormat; }
+    public String getGraveDeathTimeFormat() { return graveDeathTimeFormat; }
+    public int getGraveMaxPerPlayer() { return graveMaxPerPlayer; }
+    public boolean isGraveExpireEnabled() { return graveExpireEnabled; }
+    public int getGraveExpireDefaultSeconds() { return graveExpireDefaultSeconds; }
+    public List<GraveExpireRule> getGraveExpireRules() { return Collections.unmodifiableList(graveExpireRules); }
+    public GraveHologramConfig getGraveHologramConfig() { return graveHologramConfig; }
+    public int getGraveHistoryRetentionDays() { return graveHistoryRetentionDays; }
+    public int getGraveHistoryMaxEntries() { return graveHistoryMaxEntries; }
+    public List<String> getGraveDisabledWorlds() { return Collections.unmodifiableList(graveDisabledWorlds); }
+    public GraveGuiConfig getGraveGuiConfig() { return graveGuiConfig; }
+    public String getGraveCreatedMessage() { return graveCreatedMessage; }
+    public String getGraveNotOwnerMessage() { return graveNotOwnerMessage; }
+    public String getGraveOpenedMessage() { return graveOpenedMessage; }
+    public String getGraveMaxReachedMessage() { return graveMaxReachedMessage; }
+    public String getGraveExpiredMessage() { return graveExpiredMessage; }
+    public String getGraveFullyRecoveredMessage() { return graveFullyRecoveredMessage; }
+    public String getGraveLootStartCasterMessage() { return graveLootStartCasterMessage; }
+    public String getGraveLootStartOwnerAlertMessage() { return graveLootStartOwnerAlertMessage; }
+    public String getGraveLootCancelledMessage() { return graveLootCancelledMessage; }
+    public String getGraveLootAlreadyInProgressMessage() { return graveLootAlreadyInProgressMessage; }
+    public String getGraveLootSelfBlockedMessage() { return graveLootSelfBlockedMessage; }
+    public String getGraveLootCompleteCasterMessage() { return graveLootCompleteCasterMessage; }
+    public String getGraveLootItemRequiredMessage() { return graveLootItemRequiredMessage; }
+    public String getGraveHistoryEmptiedMessage() { return graveHistoryEmptiedMessage; }
+    public String getGraveHistoryNoItemsMessage() { return graveHistoryNoItemsMessage; }
+    public String getTimezone() { return timezone == null ? "Asia/Seoul" : timezone; }
 
     public double[] resolveDropPercents(org.bukkit.entity.Player player, String worldName) {
         PermissionRule selected = resolveEffectiveRule(player, worldName);
@@ -288,13 +353,14 @@ public class ConfigManager {
         SoulbindFields soulbind = parseSoulbindFields(section, kind);
         int applyDuration = parseSoulbindApplyDuration(section, kind);
         int stacks = parseSoulbindStacks(section, kind);
+        int castTimeSeconds = getIntSafe(section, "cast-time-seconds", 300);
 
         return new ProtectionItemConfig(
                 itemKey, kind, useMmo, useVanilla,
                 mmoItemsType, mmoItemsId, durationMinutes,
                 vanillaMaterial, vanillaName, vanillaLore, customModelData,
                 soulbind.enabled, soulbind.durationMinutes, soulbind.infinite,
-                applyDuration, stacks);
+                applyDuration, stacks, castTimeSeconds);
     }
 
     /** Small typed holder for soulbind parse results (avoids mixing boolean/int in an array). */
@@ -399,6 +465,97 @@ public class ConfigManager {
         return 1;
     }
 
+    // ── Grave config loading ──────────────────────────────────
+
+    private void loadGraveConfig(FileConfiguration config) {
+        ConfigurationSection gs = config.getConfigurationSection("grave");
+        if (gs == null) {
+            graveContainerConfig = new GraveContainerConfig(GraveContainerConfig.ContainerType.VANILLA, "BARREL", "", "");
+            graveHologramConfig = new GraveHologramConfig(true, 1.0, 20, "{player} 의 무덤 {remaining}", "{player} 의 무덤", "도굴중 {remaining}", "{looter}님이 도굴을 한 {owner}의 무덤");
+            return;
+        }
+        graveEnabled = gs.getBoolean("enabled", true);
+        ConfigurationSection cs = gs.getConfigurationSection("container");
+        if (cs != null) {
+            String typeStr = cs.getString("type", "VANILLA");
+            GraveContainerConfig.ContainerType ct = "CUSTOM_BLOCK".equalsIgnoreCase(typeStr) ? GraveContainerConfig.ContainerType.CUSTOM_BLOCK : GraveContainerConfig.ContainerType.VANILLA;
+            graveContainerConfig = new GraveContainerConfig(ct, cs.getString("vanilla-material", "BARREL"), cs.getString("custom-block-id", ""), cs.getString("custom-block-provider", ""));
+        } else {
+            graveContainerConfig = new GraveContainerConfig(GraveContainerConfig.ContainerType.VANILLA, "BARREL", "", "");
+        }
+        graveTitleFormat = gs.getString("title-format", "{player} 의 무덤 {death_time}");
+        graveDeathTimeFormat = gs.getString("death-time-format", "{year}-{month}-{day} {hour}:{minute}");
+        graveMaxPerPlayer = gs.getInt("max-graves-per-player", 5);
+        ConfigurationSection es = gs.getConfigurationSection("expire");
+        if (es != null) {
+            graveExpireEnabled = es.getBoolean("enabled", true);
+            graveExpireDefaultSeconds = es.getInt("default-seconds", 3600);
+            List<?> overrides = es.getList("permission-overrides", Collections.emptyList());
+            graveExpireRules.clear();
+            for (Object obj : overrides) {
+                if (!(obj instanceof Map)) continue;
+                Map<?, ?> m = (Map<?, ?>) obj;
+                graveExpireRules.add(new GraveExpireRule(getStringObject(m.get("permission"), ""), parseIntObject(m.get("priority"), 0), parseIntObject(m.get("seconds"), 3600)));
+            }
+        }
+        ConfigurationSection hs = config.getConfigurationSection("grave.hologram");
+        if (hs != null) {
+            graveHologramConfig = new GraveHologramConfig(hs.getBoolean("enabled", true), hs.getDouble("offset-y", 1.0), hs.getInt("update-interval-ticks", 20), hs.getString("line-format", "{player} 의 무덤 {remaining}"), hs.getString("line-format-unlimited", "{player} 의 무덤"), hs.getString("looting-line-format", "도굴중 {remaining}"), hs.getString("looted-line-format", "{looter}님이 도굴을 한 {owner}의 무덤"));
+        } else {
+            graveHologramConfig = new GraveHologramConfig(true, 1.0, 20, "{player} 의 무덤 {remaining}", "{player} 의 무덤", "도굴중 {remaining}", "{looter}님이 도굴을 한 {owner}의 무덤");
+        }
+        ConfigurationSection hcs = gs.getConfigurationSection("history");
+        if (hcs != null) { graveHistoryRetentionDays = hcs.getInt("retention-days", 30); graveHistoryMaxEntries = hcs.getInt("max-entries-per-player", 50); }
+        graveDisabledWorlds = gs.getStringList("disabled-worlds").stream().map(String::toLowerCase).collect(java.util.stream.Collectors.toList());
+    }
+    private void loadGraveMessages() {
+        FileConfiguration msg = loadYml("messages.yml");
+        graveCreatedMessage = msg.getString("grave-created", "&e({world}, {x}, {y}, {z})");
+        graveNotOwnerMessage = msg.getString("grave-not-owner", "&c주인은 {owner} 입니다.");
+        graveOpenedMessage = msg.getString("grave-opened", "&a무덤을 열었습니다.");
+        graveMaxReachedMessage = msg.getString("grave-max-reached", "&c최대 개수({max}) 도달");
+        graveExpiredMessage = msg.getString("grave-expired", "&7무덤이 사라졌습니다.");
+        graveFullyRecoveredMessage = msg.getString("grave-fully-recovered", "&e전량 회수");
+        graveLootStartCasterMessage = msg.getString("grave-loot-start-caster", "&a도굴 시작 {seconds}초");
+        graveLootStartOwnerAlertMessage = msg.getString("grave-loot-start-owner-alert", "&c누군가 당신의 무덤을 도굴중입니다!");
+        graveLootCancelledMessage = msg.getString("grave-loot-cancelled", "&c{owner}이 확인하여 취소");
+        graveLootAlreadyInProgressMessage = msg.getString("grave-loot-already-in-progress", "&c이미 도굴중");
+        graveLootSelfBlockedMessage = msg.getString("grave-loot-self-blocked", "&c자신의 무덤 불가");
+        graveLootCompleteCasterMessage = msg.getString("grave-loot-complete-caster", "&a도굴 완료!");
+        graveLootItemRequiredMessage = msg.getString("grave-loot-item-required", "&c도굴 아이템 필요");
+        graveHistoryEmptiedMessage = msg.getString("grave-history-emptied", "&a히스토리 아이템을 모두 회수했습니다.");
+        graveHistoryNoItemsMessage = msg.getString("grave-history-no-items", "&c이 무덤에는 남아있는 아이템이 없습니다.");
+    }
+
+    private void loadGraveGuiConfig() {
+        FileConfiguration gui = loadYml("gui.yml");
+        ConfigurationSection ggs = gui.getConfigurationSection("grave-gui");
+        if (ggs == null) { graveGuiConfig = new GraveGuiConfig("{player} 의 무덤", null, null, null, 49, null, null, null, null, null, null); return; }
+        ConfigurationSection eb = ggs.getConfigurationSection("exp-bottle");
+        Material ebm = org.bukkit.Material.EXPERIENCE_BOTTLE; String ebn = "&e{amount}exp"; List<String> ebl = List.of();
+        if (eb != null) { ebm = parseMaterial(eb.getString("material", "EXPERIENCE_BOTTLE"), org.bukkit.Material.EXPERIENCE_BOTTLE); ebn = eb.getString("name", ebn); ebl = eb.getStringList("lore"); }
+        ConfigurationSection ra = ggs.getConfigurationSection("recover-all");
+        int raSlot = 49; org.bukkit.Material raMat = org.bukkit.Material.NETHER_STAR; String raName = "&a&l모두 회수"; List<String> raLore = List.of();
+        if (ra != null) { raSlot = ra.getInt("slot", 49); raMat = parseMaterial(ra.getString("material", "NETHER_STAR"), org.bukkit.Material.NETHER_STAR); raName = ra.getString("name", raName); raLore = ra.getStringList("lore"); }
+        ConfigurationSection rs = ggs.getConfigurationSection("recovery-status");
+        String rso = "&a&l[ 주인 회수 ]", rsl = "&c&l[ 도굴꾼 회수 ]", rsn = "&7[ 미회수 ]";
+        if (rs != null) { rso = rs.getString("owner", rso); rsl = rs.getString("looter", rsl); rsn = rs.getString("none", rsn); }
+        graveGuiConfig = new GraveGuiConfig(ggs.getString("title", "{player} 의 무덤"), ebm, ebn, ebl, raSlot, raMat, raName, raLore, rso, rsl, rsn);
+    }
+
+    private FileConfiguration loadYml(String fileName) {
+        File f = new File(plugin.getDataFolder(), fileName);
+        if (!f.exists()) plugin.saveResource(fileName, false);
+        return YamlConfiguration.loadConfiguration(f);
+    }
+
+    public static GraveExpireRule resolveBestRule(org.bukkit.entity.Player player, List<GraveExpireRule> rules) {
+        GraveExpireRule best = null; int bestP = Integer.MIN_VALUE;
+        for (GraveExpireRule r : rules) {
+            if (player.hasPermission(r.getPermission()) && r.getPriority() > bestP) { best = r; bestP = r.getPriority(); }
+        }
+        return best;
+    }
     private static boolean getBooleanSafe(ConfigurationSection section, String path, boolean defaultValue) {
         if (section == null) return defaultValue;
         try {

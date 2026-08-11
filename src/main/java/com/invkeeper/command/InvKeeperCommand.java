@@ -1,8 +1,10 @@
 package com.invkeeper.command;
 
 import com.invkeeper.command.handler.GiveHandler;
+import com.invkeeper.command.handler.GraveAdminHandler;
 import com.invkeeper.command.handler.SoulbindAdminHandler;
 import com.invkeeper.config.ConfigManager;
+import com.invkeeper.grave.GraveManager;
 import com.invkeeper.config.PermissionRule;
 import com.invkeeper.protection.ProtectionManager;
 import com.invkeeper.soulbind.SoulbindManager;
@@ -26,14 +28,17 @@ public class InvKeeperCommand implements CommandExecutor, TabCompleter {
     private final com.invkeeper.InvKeeperPlugin plugin;
     private final GiveHandler giveHandler;
     private final SoulbindAdminHandler soulbindAdminHandler;
+    private final GraveAdminHandler graveAdminHandler;
 
-    public InvKeeperCommand(ConfigManager configManager, ProtectionManager protectionManager, com.invkeeper.InvKeeperPlugin plugin) {
+    public InvKeeperCommand(ConfigManager configManager, ProtectionManager protectionManager,
+                            com.invkeeper.InvKeeperPlugin plugin, GraveManager graveManager) {
         this.configManager = configManager;
         this.protectionManager = protectionManager;
         this.soulbindManager = protectionManager.getSoulbindManager();
         this.plugin = plugin;
         this.giveHandler = new GiveHandler(configManager, protectionManager);
         this.soulbindAdminHandler = new SoulbindAdminHandler(configManager, protectionManager, soulbindManager);
+        this.graveAdminHandler = new GraveAdminHandler(graveManager);
     }
 
     @Override
@@ -54,6 +59,8 @@ public class InvKeeperCommand implements CommandExecutor, TabCompleter {
                     return handleStatus(sender);
                 case "soulbind":
                     return soulbindAdminHandler.handle(sender, args);
+                case "grave":
+                    return graveAdminHandler.handle(sender, args);
                 default:
                     sendUsage(sender);
                     return true;
@@ -72,6 +79,9 @@ public class InvKeeperCommand implements CommandExecutor, TabCompleter {
         MessageUtil.send(sender, "&e  /invkeeper give <player> <item-key> [amount]");
         MessageUtil.send(sender, "&e  /invkeeper soulbind unbind <player> [slot|all]");
         MessageUtil.send(sender, "&e  /invkeeper soulbind inspect <player>");
+        MessageUtil.send(sender, "&e  /invkeeper grave list");
+        MessageUtil.send(sender, "&e  /invkeeper grave history <player>");
+        MessageUtil.send(sender, "&e  /invkeeper grave reload");
     }
 
     private boolean handleReload(CommandSender sender) {
@@ -132,6 +142,7 @@ public class InvKeeperCommand implements CommandExecutor, TabCompleter {
                 options.add("reload");
                 options.add("give");
                 options.add("soulbind");
+                options.add("grave");
             }
             return filter(options, args[0]);
         }
@@ -147,6 +158,9 @@ public class InvKeeperCommand implements CommandExecutor, TabCompleter {
             if (first.equals("soulbind")) {
                 return filter(List.of("unbind", "inspect"), args[1]);
             }
+            if (first.equals("grave")) {
+                return filter(List.of("list", "history", "reload"), args[1]);
+            }
         }
         if (args.length == 3) {
             String first = args[0].toLowerCase(Locale.ROOT);
@@ -154,6 +168,13 @@ public class InvKeeperCommand implements CommandExecutor, TabCompleter {
                 return filter(configManager.getProtectionItemKeys(), args[2]);
             }
             if (first.equals("soulbind")) {
+                List<String> players = new ArrayList<>();
+                for (Player player : Bukkit.getOnlinePlayers()) {
+                    players.add(player.getName());
+                }
+                return filter(players, args[2]);
+            }
+            if (first.equals("grave") && args[1].equalsIgnoreCase("history")) {
                 List<String> players = new ArrayList<>();
                 for (Player player : Bukkit.getOnlinePlayers()) {
                     players.add(player.getName());

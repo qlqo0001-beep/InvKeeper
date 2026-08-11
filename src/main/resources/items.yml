@@ -205,3 +205,16 @@ items:
     soulbind:
       enabled: true
       duration-minutes: 0
+  # ============================================
+  # 도굴 아이템
+  # ============================================
+
+  grave_loot_vanilla:
+    kind: GRAVE_LOOT_TOOL
+    cast-time-seconds: 300
+    use-type: vanilla
+    vanilla-material: TRIPWIRE_HOOK
+    vanilla-name: "&5도굴 도구"
+    vanilla-lore:
+      - "&7무덤을 우클릭하면"
+      - "&7{duration}초 후 무덤을 도굴할 수 있습니다."

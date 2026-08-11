@@ -9,10 +9,11 @@ public final class ProtectionItemConfig {
     public enum Kind {
         CONSUMABLE_PROTECTION,
         TIMED_PROTECTION,
-        SOULBIND_TOOL,          // 하위 호환: SOULBIND_TOOL_TIME으로 자동 변환됨
-        SOULBIND_TOOL_TIME,     // 시간형 각인 도구
-        SOULBIND_TOOL_STACK,    // 스택형 각인 도구
-        SOULBIND_UNBIND_TOOL;
+        SOULBIND_TOOL,
+        SOULBIND_TOOL_TIME,
+        SOULBIND_TOOL_STACK,
+        SOULBIND_UNBIND_TOOL,
+        GRAVE_LOOT_TOOL;        // 신규: 도굴 아이템
 
         public boolean isProtection() {
             return this == CONSUMABLE_PROTECTION || this == TIMED_PROTECTION;
@@ -23,17 +24,10 @@ public final class ProtectionItemConfig {
                 || this == SOULBIND_TOOL_STACK || this == SOULBIND_UNBIND_TOOL;
         }
 
-        public boolean isUnbindTool() {
-            return this == SOULBIND_UNBIND_TOOL;
-        }
-
-        public boolean isTimeTool() {
-            return this == SOULBIND_TOOL || this == SOULBIND_TOOL_TIME;
-        }
-
-        public boolean isStackTool() {
-            return this == SOULBIND_TOOL_STACK;
-        }
+        public boolean isUnbindTool() { return this == SOULBIND_UNBIND_TOOL; }
+        public boolean isTimeTool() { return this == SOULBIND_TOOL || this == SOULBIND_TOOL_TIME; }
+        public boolean isStackTool() { return this == SOULBIND_TOOL_STACK; }
+        public boolean isGraveLootTool() { return this == GRAVE_LOOT_TOOL; }
     }
 
     private final String key;
@@ -54,6 +48,7 @@ public final class ProtectionItemConfig {
     private final boolean soulbindInfinite;
     private final int soulbindApplyDuration; // For SOULBIND_TOOL_TIME: duration applied to target items (분)
     private final int soulbindStacks;         // For SOULBIND_TOOL_STACK: stacks applied to target items, -1 = infinite
+    private final int castTimeSeconds;        // For GRAVE_LOOT_TOOL: cast time in seconds
 
     public ProtectionItemConfig(
             String key,
@@ -71,7 +66,8 @@ public final class ProtectionItemConfig {
             int soulbindDurationMinutes,
             boolean soulbindInfinite,
             int soulbindApplyDuration,
-            int soulbindStacks) {
+            int soulbindStacks,
+            int castTimeSeconds) {
         this.key = Objects.requireNonNull(key, "key");
         this.kind = Objects.requireNonNull(kind, "kind");
         this.useMmo = useMmo;
@@ -88,6 +84,7 @@ public final class ProtectionItemConfig {
         this.soulbindInfinite = soulbindInfinite;
         this.soulbindApplyDuration = Math.max(0, soulbindApplyDuration);
         this.soulbindStacks = soulbindStacks;
+        this.castTimeSeconds = Math.max(0, castTimeSeconds);
     }
 
     public String getKey() {
@@ -153,4 +150,5 @@ public final class ProtectionItemConfig {
     public int getSoulbindStacks() {
         return soulbindStacks;
     }
+    public int getCastTimeSeconds() { return castTimeSeconds; }
 }

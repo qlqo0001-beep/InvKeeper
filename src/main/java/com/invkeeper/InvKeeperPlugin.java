@@ -2,13 +2,9 @@ package com.invkeeper;
 
 import com.invkeeper.command.InvKeeperCommand;
 import com.invkeeper.config.ConfigManager;
-import com.invkeeper.listener.PlayerDeathListener;
-import com.invkeeper.listener.ProtectionItemUseListener;
-import com.invkeeper.listener.SoulbindInventoryListener;
-import com.invkeeper.listener.SoulbindPickupListener;
-import com.invkeeper.listener.SoulbindTransferListener;
-import com.invkeeper.listener.SoulbindUseListener;
-import com.invkeeper.listener.WorldLoadListener;
+import com.invkeeper.grave.GraveManager;
+import com.invkeeper.grave.GraveTickManager;
+import com.invkeeper.listener.*;
 import com.invkeeper.protection.ProtectionAlertManager;
 import com.invkeeper.protection.ProtectionManager;
 import org.bukkit.Bukkit;
@@ -24,16 +20,31 @@ public class InvKeeperPlugin extends JavaPlugin {
     private ProtectionManager protectionManager;
     private com.invkeeper.soulbind.SoulbindManager soulbindManager;
     private ProtectionAlertManager protectionAlertManager;
+    private GraveManager graveManager;
+    private GraveTickManager graveTickManager;
 
     @Override
     public void onEnable() {
         saveDefaultConfig();
         saveResource("items.yml", false);
-        saveResource("messages.yml", false);
+        // Save resource files including gui.yml
+        saveResource("gui.yml", false);
+
         configManager = new ConfigManager(this);
         configManager.load();
         soulbindManager = new com.invkeeper.soulbind.SoulbindManager(this);
         protectionManager = new ProtectionManager(this, configManager, soulbindManager);
+
+        // ── Grave system ──────────────────────────────────────
+        graveManager = new GraveManager(this, configManager);
+        if (graveManager.isEnabled()) {
+            graveManager.loadAll();
+            graveTickManager = new GraveTickManager(this, graveManager);
+            graveTickManager.start();
+            getLogger().info("무덤 시스템 활성화됨");
+        } else {
+            getLogger().info("무덤 시스템 비활성화 (config.grave.enabled = false)");
+        }
 
         if (configManager.isForceKeepInventoryFalse()) {
             for (var world : Bukkit.getWorlds()) {
@@ -44,20 +55,26 @@ public class InvKeeperPlugin extends JavaPlugin {
         // Register cleanup listener for memory leak prevention
         getServer().getPluginManager().registerEvents(new CleanupListener(), this);
 
-        getServer().getPluginManager().registerEvents(new PlayerDeathListener(protectionManager, configManager), this);
+        getServer().getPluginManager().registerEvents(new PlayerDeathListener(protectionManager, configManager, graveManager), this);
         getServer().getPluginManager().registerEvents(new ProtectionItemUseListener(protectionManager, configManager), this);
         getServer().getPluginManager().registerEvents(new WorldLoadListener(configManager), this);
-        getServer().getPluginManager().registerEvents(new com.invkeeper.listener.SoulbindPickupListener(protectionManager, configManager, this), this);
-        getServer().getPluginManager().registerEvents(new com.invkeeper.listener.SoulbindInventoryListener(protectionManager, configManager), this);
-        getServer().getPluginManager().registerEvents(new com.invkeeper.listener.SoulbindTransferListener(protectionManager, configManager), this);
-        getServer().getPluginManager().registerEvents(new com.invkeeper.listener.SoulbindUseListener(protectionManager, configManager), this);
+        getServer().getPluginManager().registerEvents(new SoulbindPickupListener(protectionManager, configManager, this), this);
+        getServer().getPluginManager().registerEvents(new SoulbindInventoryListener(protectionManager, configManager), this);
+        getServer().getPluginManager().registerEvents(new SoulbindTransferListener(protectionManager, configManager), this);
+        getServer().getPluginManager().registerEvents(new SoulbindUseListener(protectionManager, configManager), this);
+
+        // ── Grave listeners ──────────────────────────────────
+        getServer().getPluginManager().registerEvents(new GraveInteractListener(graveManager), this);
+        getServer().getPluginManager().registerEvents(new GraveProtectionListener(graveManager), this);
+        getServer().getPluginManager().registerEvents(new GraveGuiListener(graveManager), this);
+        getServer().getPluginManager().registerEvents(new GraveAdminGuiListener(graveManager), this);
 
         // Create and store reference to ProtectionAlertManager
         protectionAlertManager = new ProtectionAlertManager(this, protectionManager, configManager);
 
         var command = getCommand("invkeeper");
         if (command != null) {
-            InvKeeperCommand executor = new InvKeeperCommand(configManager, protectionManager, this);
+            InvKeeperCommand executor = new InvKeeperCommand(configManager, protectionManager, this, graveManager);
             command.setExecutor(executor);
             command.setTabCompleter(executor);
         }
@@ -89,9 +106,11 @@ public class InvKeeperPlugin extends JavaPlugin {
         }
 
         // Clear alert manager states
-        if (protectionAlertManager != null) {
-            protectionAlertManager.shutdown();
-        }
+        if (protectionAlertManager != null) protectionAlertManager.shutdown();
+
+        // Shutdown grave system
+        if (graveTickManager != null) graveTickManager.shutdown();
+        if (graveManager != null) graveManager.shutdown();
 
         // Clear references
         if (configManager != null) {
@@ -108,6 +127,7 @@ public class InvKeeperPlugin extends JavaPlugin {
     public ProtectionManager getProtectionManager() {
         return protectionManager;
     }
+    public GraveManager getGraveManager() { return graveManager; }
 
     /**
      * Shuts down the current alert manager (if any) and creates a fresh one using the

@@ -1,0 +1,22 @@
+grave-gui:
+  title: "{player} 의 무덤"
+
+  exp-bottle:
+    material: EXPERIENCE_BOTTLE
+    name: "&e경험치 {amount}exp"
+    lore:
+      - "&7클릭하여 경험치를 회수합니다."
+
+  recover-all:
+    slot: 49
+    material: NETHER_STAR
+    name: "&a&l모두 회수"
+    lore:
+      - "&7클릭 시 장비, 왼손, 인벤토리의 모든 아이템과"
+      - "&7경험치를 한 번에 회수합니다."
+      - "&7착용 가능한 장비는 자동 착용됩니다."
+
+  recovery-status:
+    owner: "&a&l[ 주인 회수 완료 ]"
+    looter: "&c&l[ 도굴꾼 회수 ]"
+    none: "&7[ 미회수 ]"

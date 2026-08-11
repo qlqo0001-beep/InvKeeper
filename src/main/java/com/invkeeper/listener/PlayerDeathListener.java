@@ -1,6 +1,7 @@
 package com.invkeeper.listener;
 
 import com.invkeeper.config.ConfigManager;
+import com.invkeeper.grave.GraveManager;
 import com.invkeeper.protection.ProtectionManager;
 import com.invkeeper.util.MessageUtil;
 import org.bukkit.Location;
@@ -20,10 +21,13 @@ import java.util.List;
 public class PlayerDeathListener implements Listener {
     private final ProtectionManager protectionManager;
     private final ConfigManager configManager;
+    private final GraveManager graveManager;
 
-    public PlayerDeathListener(ProtectionManager protectionManager, ConfigManager configManager) {
+    public PlayerDeathListener(ProtectionManager protectionManager, ConfigManager configManager,
+                               GraveManager graveManager) {
         this.protectionManager = protectionManager;
         this.configManager = configManager;
+        this.graveManager = graveManager;
     }
 
     @EventHandler(priority = EventPriority.HIGH)
@@ -70,6 +74,54 @@ public class PlayerDeathListener implements Listener {
         double[] percents = configManager.resolveDropPercents(player, player.getWorld().getName());
         int inventoryPercent = clamp((int) Math.round(percents[0]), 0, 100);
         int expPercent = clamp((int) Math.round(percents[1]), 0, 100);
+
+        // ── Grave system path ────────────────────────────────
+        if (graveManager != null && graveManager.isEnabled()) {
+            // Use same percent-based selection logic as the old dropInventory
+            List<Integer> occupiedSlots = new ArrayList<>();
+            for (int slot = 0; slot < 41; slot++) {
+                ItemStack item = inventory.getItem(slot);
+                if (item != null && !item.getType().isAir()
+                    && (soulbind == null || !soulbind.isSoulbound(item))) {
+                    occupiedSlots.add(slot);
+                }
+            }
+            int slotsToDrop = occupiedSlots.isEmpty() ? 0
+                : clamp((int) Math.floor(occupiedSlots.size() * inventoryPercent / 100.0), 0, occupiedSlots.size());
+            Collections.shuffle(occupiedSlots);
+
+            ItemStack[] eq = new ItemStack[4];  // eq[3]=helmet, eq[2]=chest, eq[1]=leggings, eq[0]=boots
+            ItemStack oh = null;
+            ItemStack[] inv = new ItemStack[36];
+
+            for (int i = 0; i < slotsToDrop; i++) {
+                int slot = occupiedSlots.get(i);
+                ItemStack item = inventory.getItem(slot);
+                if (item == null || item.getType().isAir()) continue;
+                if (soulbind != null && soulbind.isSoulbound(item)) continue;
+
+                if (slot == 39) eq[3] = item.clone();
+                else if (slot == 38) eq[2] = item.clone();
+                else if (slot == 37) eq[1] = item.clone();
+                else if (slot == 36) eq[0] = item.clone();
+                else if (slot == 40) oh = item.clone();
+                else if (slot >= 0 && slot < 36) inv[slot] = item.clone();
+
+                inventory.setItem(slot, null);
+            }
+
+            int totalExp = calculateExpLoss(player, expPercent);
+            graveManager.createGrave(player, player.getLocation(), eq, oh, inv, totalExp);
+
+            int actualLostPercent = occupiedSlots.isEmpty() ? 0
+                : clamp((int) Math.round(slotsToDrop * 100.0 / occupiedSlots.size()), 0, 100);
+            MessageUtil.send(player, configManager.getDeathMessage()
+                    .replace("{inv_percent}", String.valueOf(actualLostPercent))
+                    .replace("{exp_percent}", String.valueOf(expPercent))
+                    .replace("{items_dropped}", String.valueOf(slotsToDrop))
+                    .replace("{exp_dropped}", String.valueOf(totalExp)));
+            return;
+        }
 
         int totalOccupiedSlots = countOccupiedSlots(player);
         int droppedItems = dropInventory(player, inventoryPercent);
@@ -147,6 +199,21 @@ public class PlayerDeathListener implements Listener {
             droppedCount++;
         }
         return droppedCount;
+    }
+
+    /**
+     * Calculates XP loss without spawning orbs (for grave path).
+     */
+    private int calculateExpLoss(Player player, int percent) {
+        int totalExp = totalExp(player.getLevel(), player.getExp());
+        if (totalExp <= 0 || percent <= 0) {
+            setFromTotalExp(player, totalExp);
+            return 0;
+        }
+        int dropAmount = clamp((int) Math.round(totalExp * percent / 100.0), 0, totalExp);
+        int remaining = totalExp - dropAmount;
+        setFromTotalExp(player, remaining);
+        return dropAmount;
     }
 
     private int dropExperience(Player player, int percent) {

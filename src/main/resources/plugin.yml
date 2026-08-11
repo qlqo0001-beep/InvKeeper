@@ -1,5 +1,5 @@
 name: InvKeeper
-version: '1.3.6'
+version: '1.4.1'
 main: com.invkeeper.InvKeeperPlugin
 api-version: '1.21'
 softdepend: [MMOItems]
@@ -9,7 +9,7 @@ description: 사망 시 인벤토리/경험치를 월드, 권한, 보호 아이�
 commands:
   invkeeper:
     description: InvKeeper 관리 명령어
-    usage: /<command> [status|reload|give|soulbind]
+    usage: /<command> [status|reload|give|soulbind|grave]
     aliases: [ik]
 
 permissions:
@@ -19,6 +19,18 @@ permissions:
   invkeeper.admin:
     description: InvKeeper 관리 권한 (reload, give, soulbind unbind/inspect)
     default: op
+  invkeeper.grave.admin:
+    description: 무덤 관리 권한 (list, history, reload)
+    default: op
+  invkeeper.grave.bypass:
+    description: 무덤을 도굴 아이템 없이 강제 오픈 가능
+    default: op
+  invkeeper.grave.time.vip:
+    description: VIP 무덤 만료 시간 등급
+    default: false
+  invkeeper.grave.time.vvip:
+    description: VVIP 무덤 만료 시간 등급 (무제한)
+    default: false
   invkeeper.drop.1:
     description: 드랍 규칙 등급 1 적용 권한
     default: false

@@ -105,3 +105,52 @@ rules:
       priority: 100
       inventory-drop-percent: 0
       exp-drop-percent: 0
+# ============================================
+# 무덤(Grave) 시스템 설정
+# ============================================
+
+grave:
+  enabled: true
+
+  container:
+    type: VANILLA
+    vanilla-material: BARREL
+    custom-block-id: ""
+    custom-block-provider: ""
+
+  title-format: "{player} 의 무덤 {death_time}"
+  death-time-format: "{year}-{month}-{day} {hour}:{minute}"
+
+  max-graves-per-player: 5
+
+  expire:
+    enabled: true
+    default-seconds: 3600
+    permission-overrides:
+      - permission: "invkeeper.grave.time.vip"
+        priority: 10
+        seconds: 7200
+      - permission: "invkeeper.grave.time.vvip"
+        priority: 20
+        seconds: -1
+
+  history:
+    retention-days: 30
+    max-entries-per-player: 50
+
+  disabled-worlds: []
+
+  hologram:
+    enabled: true
+    offset-y: 1.0
+    update-interval-ticks: 20
+    line-format: "{player} 의 무덤 {remaining}"
+    line-format-unlimited: "{player} 의 무덤"
+    looting-line-format: "도굴중 {remaining}"
+    looted-line-format: "{looter}님이 도굴을 한 {owner}의 무덤"
+
+  protection:
+    prevent-block-break: true
+    prevent-explosion: true
+    prevent-piston: true
+    prevent-hopper: true
