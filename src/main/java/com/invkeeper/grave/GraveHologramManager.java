@@ -30,6 +30,11 @@ public class GraveHologramManager {
         World world = Bukkit.getWorld(grave.getWorldName());
         if (world == null) return;
         Location loc = new Location(world, grave.getX() + 0.5, grave.getY() + config.getOffsetY(), grave.getZ() + 0.5);
+        // 청크를 먼저 로드해야 재시작 전에 남아있던 홀로그램 엔티티가 실제로 조회됩니다.
+        // (미로드 상태에서 purge를 먼저 하면 아무것도 못 찾고, 곧이어 spawnEntity가 청크를 강제로 로드하며
+        //  그제서야 오래된 엔티티가 나타나 새 엔티티와 겹치는 문제가 있었습니다. 어차피 spawnEntity도 같은
+        //  청크를 로드시키므로 순서만 앞당길 뿐 추가 비용은 없습니다)
+        loc.getChunk().load();
         purgeOrphansAt(world, loc); // 서버 재시작 등으로 메모리 추적에서 벗어난 중복 홀로그램 정리 (겹침 방지)
         TextDisplay td = (TextDisplay) world.spawnEntity(loc, EntityType.TEXT_DISPLAY);
         td.setBillboard(Display.Billboard.CENTER);
