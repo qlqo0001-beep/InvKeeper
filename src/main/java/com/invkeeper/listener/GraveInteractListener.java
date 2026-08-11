@@ -48,6 +48,7 @@ public class GraveInteractListener implements Listener {
                     }
                 }
                 graveManager.getLootSessionManager().cancelSession(grave.getGraveId());
+                MessageUtil.send(player, graveManager.getConfigManager().getGraveLootBlockedOwnerMessage());
             }
             new GraveInventoryView(graveManager).open(player, grave);
             return;

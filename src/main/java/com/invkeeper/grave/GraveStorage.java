@@ -9,6 +9,7 @@ import org.bukkit.util.io.BukkitObjectInputStream;
 import org.bukkit.util.io.BukkitObjectOutputStream;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 public class GraveStorage {
@@ -22,8 +23,47 @@ public class GraveStorage {
         if (!gravesDir.exists()) gravesDir.mkdirs();
     }
 
+    /**
+     * 무덤을 저장합니다. 디스크 쓰기(느린 I/O)는 메인 스레드를 막지 않도록 비동기로 수행됩니다.
+     * (사망/무덤 아이템 회수 등 게임플레이 도중 매우 자주 호출되어, 동기 쓰기 시 TPS/MSPT가 흔들리는 원인이었음)
+     */
     public void save(Grave grave) {
-        File file = new File(gravesDir, grave.getGraveId().toString() + ".yml");
+        persist(grave, true);
+    }
+
+    /**
+     * 동기(블로킹) 저장. 플러그인 종료(onDisable) 시에만 사용합니다.
+     * 서버 프로세스가 곧바로 종료될 수 있어, 비동기 쓰기가 완료되기 전에 데이터가 유실될 위험이 있기 때문입니다.
+     */
+    public void saveSync(Grave grave) {
+        persist(grave, false);
+    }
+
+    private void persist(Grave grave, boolean async) {
+        UUID graveId = grave.getGraveId();
+        File file = new File(gravesDir, graveId.toString() + ".yml");
+        YamlConfiguration yaml = buildYaml(grave);
+
+        if (!async) {
+            try {
+                yaml.save(file);
+            } catch (Exception e) {
+                plugin.getLogger().severe("[InvKeeper] 무덤 저장 실패 " + graveId + ": " + e.getMessage());
+            }
+            return;
+        }
+
+        String text;
+        try {
+            text = yaml.saveToString();
+        } catch (Exception e) {
+            plugin.getLogger().severe("[InvKeeper] 무덤 저장 실패 " + graveId + ": " + e.getMessage());
+            return;
+        }
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> writeText(file, text, graveId));
+    }
+
+    private YamlConfiguration buildYaml(Grave grave) {
         YamlConfiguration yaml = new YamlConfiguration();
         yaml.set("graveId", grave.getGraveId().toString());
         yaml.set("ownerUuid", grave.getOwnerUuid().toString());
@@ -53,11 +93,14 @@ public class GraveStorage {
         if (grave.getOriginalContents() != null) {
             writeContents(yaml, "original-contents", grave.getOriginalContents());
         }
+        return yaml;
+    }
 
-        try {
-            yaml.save(file);
-        } catch (Exception e) {
-            plugin.getLogger().severe("[InvKeeper] 무덤 저장 실패 " + grave.getGraveId() + ": " + e.getMessage());
+    private void writeText(File file, String text, UUID graveId) {
+        try (Writer w = new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8)) {
+            w.write(text);
+        } catch (IOException e) {
+            plugin.getLogger().severe("[InvKeeper] 무덤 저장 실패 " + graveId + ": " + e.getMessage());
         }
     }
 
@@ -94,7 +137,7 @@ public class GraveStorage {
 
     public void delete(UUID graveId) {
         File f = new File(gravesDir, graveId.toString() + ".yml");
-        if (f.exists()) f.delete();
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> { if (f.exists()) f.delete(); });
     }
     private Grave loadOne(File f) {
         YamlConfiguration y = YamlConfiguration.loadConfiguration(f);

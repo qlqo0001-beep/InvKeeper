@@ -63,6 +63,15 @@ public class GraveManager {
         this.expireRules = configManager.getGraveExpireRules();
         this.disabledWorlds = configManager.getGraveDisabledWorlds();
     }
+
+    /**
+     * 모든 활성 무덤의 홀로그램을 다시 스폰합니다. 서버 재시작 등으로 남은
+     * 중복/고아 홀로그램 엔티티를 서버를 다시 내리지 않고 즉시 정리할 때 사용합니다.
+     */
+    public void resyncHolograms() {
+        for (Grave g : byGraveId.values()) hologramManager.spawn(g);
+    }
+
     public void loadAll() {
         byGraveId.clear();
         byLocation.clear();
@@ -243,7 +252,8 @@ public class GraveManager {
     }
 
     public void shutdown() {
-        for (Grave g : byGraveId.values()) storage.save(g);
+        // 종료 시에는 프로세스가 곧바로 내려갈 수 있으므로 동기 저장을 사용해 데이터 유실을 방지합니다.
+        for (Grave g : byGraveId.values()) storage.saveSync(g);
         hologramManager.shutdown();
         lootSessionManager.shutdown();
     }

@@ -46,7 +46,8 @@ public class GraveAdminHandler {
                 return true;
             case "reload":
                 graveManager.reloadConfig();
-                MessageUtil.send(sender, "&a무덤 설정이 리로드되었습니다.");
+                graveManager.resyncHolograms();
+                MessageUtil.send(sender, "&a무덤 설정이 리로드되었습니다. (홀로그램 재동기화 포함)");
                 return true;
             default:
                 return false;

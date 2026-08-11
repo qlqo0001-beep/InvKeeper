@@ -42,6 +42,8 @@ public class VanillaProtectionItems {
         List<String> lore = config.getVanillaLore();
         if (config.getKind() == ProtectionItemConfig.Kind.TIMED_PROTECTION) {
             lore = replaceDurationPlaceholder(lore, config.getDurationMinutes());
+        } else if (config.getKind() == ProtectionItemConfig.Kind.GRAVE_LOOT_TOOL) {
+            lore = replaceDurationPlaceholder(lore, config.getCastTimeSeconds());
         }
         if (ownerName != null) {
             lore = replacePlaceholder(lore, "{owner}", ownerName);

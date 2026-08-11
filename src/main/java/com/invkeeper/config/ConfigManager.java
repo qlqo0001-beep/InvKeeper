@@ -77,6 +77,7 @@ public class ConfigManager {
     private String graveLootStartCasterMessage;
     private String graveLootStartOwnerAlertMessage;
     private String graveLootCancelledMessage;
+    private String graveLootBlockedOwnerMessage;
     private String graveLootAlreadyInProgressMessage;
     private String graveLootSelfBlockedMessage;
     private String graveLootCompleteCasterMessage;
@@ -285,6 +286,7 @@ public class ConfigManager {
     public String getGraveLootStartCasterMessage() { return graveLootStartCasterMessage; }
     public String getGraveLootStartOwnerAlertMessage() { return graveLootStartOwnerAlertMessage; }
     public String getGraveLootCancelledMessage() { return graveLootCancelledMessage; }
+    public String getGraveLootBlockedOwnerMessage() { return graveLootBlockedOwnerMessage; }
     public String getGraveLootAlreadyInProgressMessage() { return graveLootAlreadyInProgressMessage; }
     public String getGraveLootSelfBlockedMessage() { return graveLootSelfBlockedMessage; }
     public String getGraveLootCompleteCasterMessage() { return graveLootCompleteCasterMessage; }
@@ -519,6 +521,7 @@ public class ConfigManager {
         graveLootStartCasterMessage = msg.getString("grave-loot-start-caster", "&a도굴 시작 {seconds}초");
         graveLootStartOwnerAlertMessage = msg.getString("grave-loot-start-owner-alert", "&c누군가 당신의 무덤을 도굴중입니다!");
         graveLootCancelledMessage = msg.getString("grave-loot-cancelled", "&c{owner}이 확인하여 취소");
+        graveLootBlockedOwnerMessage = msg.getString("grave-loot-blocked-owner", "&a무덤 도굴을 막았습니다!");
         graveLootAlreadyInProgressMessage = msg.getString("grave-loot-already-in-progress", "&c이미 도굴중");
         graveLootSelfBlockedMessage = msg.getString("grave-loot-self-blocked", "&c자신의 무덤 불가");
         graveLootCompleteCasterMessage = msg.getString("grave-loot-complete-caster", "&a도굴 완료!");

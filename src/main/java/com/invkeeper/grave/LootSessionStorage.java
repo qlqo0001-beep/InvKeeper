@@ -1,5 +1,6 @@
 package com.invkeeper.grave;
 
+import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
 
@@ -17,18 +18,25 @@ public class LootSessionStorage {
         if (!sessionsDir.exists()) sessionsDir.mkdirs();
     }
 
+    /**
+     * LootSession은 완전 불변(UUID/String/long)이라 다른 스레드에서 안전하게 다룰 수 있어,
+     * 조립부터 디스크 쓰기까지 전부 비동기로 넘겨 메인 스레드 블로킹을 피합니다.
+     * (도굴 시작/취소가 잦은 서버에서 무덤을 열 때마다 발생하는 렉의 원인 중 하나였음)
+     */
     public void save(LootSession session) {
         File f = new File(sessionsDir, session.getSessionId().toString() + ".yml");
-        YamlConfiguration y = new YamlConfiguration();
-        y.set("sessionId", session.getSessionId().toString());
-        y.set("graveId", session.getGraveId().toString());
-        y.set("looterUuid", session.getLooterUuid().toString());
-        y.set("looterName", session.getLooterName());
-        y.set("startedAt", session.getStartedAt());
-        y.set("endsAt", session.getEndsAt());
-        try { y.save(f); } catch (IOException e) {
-            plugin.getLogger().warning("[InvKeeper] session save: " + e.getMessage());
-        }
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            YamlConfiguration y = new YamlConfiguration();
+            y.set("sessionId", session.getSessionId().toString());
+            y.set("graveId", session.getGraveId().toString());
+            y.set("looterUuid", session.getLooterUuid().toString());
+            y.set("looterName", session.getLooterName());
+            y.set("startedAt", session.getStartedAt());
+            y.set("endsAt", session.getEndsAt());
+            try { y.save(f); } catch (IOException e) {
+                plugin.getLogger().warning("[InvKeeper] session save: " + e.getMessage());
+            }
+        });
     }
 
     public List<LootSession> loadAll() {
@@ -51,6 +59,6 @@ public class LootSessionStorage {
 
     public void delete(UUID sessionId) {
         File f = new File(sessionsDir, sessionId.toString() + ".yml");
-        if (f.exists()) f.delete();
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> { if (f.exists()) f.delete(); });
     }
 }

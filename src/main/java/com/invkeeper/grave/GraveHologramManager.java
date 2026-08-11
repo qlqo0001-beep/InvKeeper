@@ -30,6 +30,7 @@ public class GraveHologramManager {
         World world = Bukkit.getWorld(grave.getWorldName());
         if (world == null) return;
         Location loc = new Location(world, grave.getX() + 0.5, grave.getY() + config.getOffsetY(), grave.getZ() + 0.5);
+        purgeOrphansAt(world, loc); // 서버 재시작 등으로 메모리 추적에서 벗어난 중복 홀로그램 정리 (겹침 방지)
         TextDisplay td = (TextDisplay) world.spawnEntity(loc, EntityType.TEXT_DISPLAY);
         td.setBillboard(Display.Billboard.CENTER);
         td.setSeeThrough(false);
@@ -47,6 +48,17 @@ public class GraveHologramManager {
     public void remove(UUID graveId) {
         TextDisplay td = holograms.remove(graveId);
         if (td != null && td.isValid()) td.remove();
+    }
+
+    /**
+     * 무덤 홀로그램 앵커 지점 주변에 남아있는 TextDisplay 엔티티를 모두 제거.
+     * 재시작 전 스폰된 엔티티는 이 매니저의 메모리 맵으로 추적되지 않으므로,
+     * 새 홀로그램을 스폰하기 전 실제 월드를 조회해 잔존 엔티티를 정리한다.
+     */
+    private void purgeOrphansAt(World world, Location loc) {
+        for (org.bukkit.entity.Entity e : world.getNearbyEntities(loc, 0.75, 2.5, 0.75)) {
+            if (e instanceof TextDisplay) e.remove();
+        }
     }
 
     public void shutdown() {

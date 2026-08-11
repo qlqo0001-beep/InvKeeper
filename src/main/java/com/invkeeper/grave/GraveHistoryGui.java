@@ -29,14 +29,27 @@ public class GraveHistoryGui {
         this.guiConfig = gm.getConfigManager().getGraveGuiConfig();
     }
 
+    /**
+     * historyStorage.loadPlayer()는 히스토리 디렉터리 전체를 스캔/파싱하는 블로킹 디스크 읽기이므로,
+     * 메인 스레드를 막지 않도록 비동기로 조회한 뒤 결과만 메인 스레드로 되돌려 GUI를 엽니다.
+     */
     public void open(Player p, UUID targetUuid) {
-        List<GraveHistoryStorage.Entry> list = new ArrayList<>();
-        for (Grave g : graveManager.getGravesByOwner(targetUuid)) list.add(toEntry(g));
-        list.addAll(historyStorage.loadPlayer(targetUuid));
-        list.sort((a, b) -> Long.compare(b.archivedAt, a.archivedAt));
-        playerCache.put(p.getUniqueId(), list);
-        if (list.isEmpty()) { MessageUtil.send(p, "&7조회할 무덤 히스토리가 없습니다."); return; }
-        showPage(p, 0);
+        List<GraveHistoryStorage.Entry> liveEntries = new ArrayList<>();
+        for (Grave g : graveManager.getGravesByOwner(targetUuid)) liveEntries.add(toEntry(g));
+
+        Bukkit.getScheduler().runTaskAsynchronously(graveManager.getPlugin(), () -> {
+            List<GraveHistoryStorage.Entry> diskEntries = historyStorage.loadPlayer(targetUuid);
+            List<GraveHistoryStorage.Entry> combined = new ArrayList<>(liveEntries);
+            combined.addAll(diskEntries);
+            combined.sort((a, b) -> Long.compare(b.archivedAt, a.archivedAt));
+
+            Bukkit.getScheduler().runTask(graveManager.getPlugin(), () -> {
+                if (!p.isOnline()) return;
+                playerCache.put(p.getUniqueId(), combined);
+                if (combined.isEmpty()) { MessageUtil.send(p, "&7조회할 무덤 히스토리가 없습니다."); return; }
+                showPage(p, 0);
+            });
+        });
     }
 
     private GraveHistoryStorage.Entry toEntry(Grave g) {

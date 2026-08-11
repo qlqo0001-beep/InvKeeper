@@ -1,5 +1,6 @@
 package com.invkeeper.grave;
 
+import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
@@ -22,8 +23,15 @@ public class GraveHistoryStorage {
         if (!historyDir.exists()) historyDir.mkdirs();
     }
 
+    /**
+     * 무덤을 히스토리에 기록합니다. YamlConfiguration 조립(메인 스레드에서 안전하게 아이템을
+     * 복제)까지는 동기로 하되, 실제 디스크 쓰기와 prune(전체 디렉터리 스캔)은 비동기로 넘깁니다.
+     * 그렇지 않으면 무덤 제거/만료가 잦은 서버에서 매번 메인 스레드가 파일 I/O로 멈추게 됩니다.
+     */
     public void archive(Grave grave) {
         File file = new File(historyDir, grave.getGraveId().toString() + ".yml");
+        UUID graveId = grave.getGraveId();
+        UUID ownerUuid = grave.getOwnerUuid();
         YamlConfiguration y = new YamlConfiguration();
         y.set("graveId", grave.getGraveId().toString());
         y.set("ownerUuid", grave.getOwnerUuid().toString());
@@ -44,29 +52,38 @@ public class GraveHistoryStorage {
             y.set("looterName", grave.getLooterName());
         }
         y.set("archivedAt", System.currentTimeMillis());
-        try {
-            y.save(file);
-        } catch (Exception e) {
-            plugin.getLogger().severe("[InvKeeper] 히스토리 저장 실패 " + grave.getGraveId() + ": " + e.getMessage());
-        }
-        prune(grave.getOwnerUuid());
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            try {
+                y.save(file);
+            } catch (Exception e) {
+                plugin.getLogger().severe("[InvKeeper] 히스토리 저장 실패 " + graveId + ": " + e.getMessage());
+            }
+            prune(ownerUuid);
+        });
     }
 
     /**
      * 히스토리 엔트리의 컨텐츠만 갱신 (어드민이 히스토리 뷰에서 아이템 회수 시).
+     * 회수 시점의 아이템을 메인 스레드에서 안전하게 복제한 뒤, 기존 파일 읽기/쓰기는 비동기로 수행합니다.
      */
     public void saveEntryContents(Grave g) {
-        File file = new File(historyDir, g.getGraveId().toString() + ".yml");
-        if (!file.exists()) return;
-        YamlConfiguration y = YamlConfiguration.loadConfiguration(file);
-        writeContents(y, "contents", g.getContents());
-        y.set("itemCount", g.getContents().countItems());
-        y.set("totalExp", g.getContents().getTotalExp());
-        try {
-            y.save(file);
-        } catch (Exception e) {
-            plugin.getLogger().severe("[InvKeeper] 히스토리 컨텐츠 갱신 실패 " + g.getGraveId() + ": " + e.getMessage());
-        }
+        UUID graveId = g.getGraveId();
+        GraveContents c = g.getContents();
+        // 다른 스레드에서 안전하게 다룰 수 있도록 현재 시점의 아이템을 독립적으로 복제(스냅샷)
+        GraveContents snapshot = new GraveContents(c.getEquipment(), c.getOffhand(), c.getInventory(), c.getTotalExp());
+        File file = new File(historyDir, graveId.toString() + ".yml");
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            if (!file.exists()) return;
+            YamlConfiguration y = YamlConfiguration.loadConfiguration(file);
+            writeContents(y, "contents", snapshot);
+            y.set("itemCount", snapshot.countItems());
+            y.set("totalExp", snapshot.getTotalExp());
+            try {
+                y.save(file);
+            } catch (Exception e) {
+                plugin.getLogger().severe("[InvKeeper] 히스토리 컨텐츠 갱신 실패 " + graveId + ": " + e.getMessage());
+            }
+        });
     }
 
     public void delete(UUID graveId) {
