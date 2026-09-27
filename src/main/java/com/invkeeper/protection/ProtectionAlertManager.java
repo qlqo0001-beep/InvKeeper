@@ -7,13 +7,12 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 public class ProtectionAlertManager implements Runnable {
-    private static final long FIVE_MINUTES_MS = 300_000L;
-    private static final long ONE_MINUTE_MS = 60_000L;
-
     private final ProtectionManager protectionManager;
     private final ConfigManager configManager;
     private final Map<UUID, ReminderState> reminderStates = new HashMap<>();
@@ -86,21 +85,22 @@ public class ProtectionAlertManager implements Runnable {
 
     private void checkPlayer(Player player) {
         if (!protectionManager.getTimedProtectionStore().isActive(player)) {
-            reminderStates.remove(player.getUniqueId());
+            // A state exists only if protection was active on a previous tick while
+            // the player was online, so this fires once at the moment it expires.
+            if (reminderStates.remove(player.getUniqueId()) != null) {
+                MessageUtil.send(player, configManager.getTimedExpiredMessage());
+            }
             return;
         }
 
         long remainingMillis = protectionManager.getTimedProtectionStore().getRemainingMillis(player);
         ReminderState state = reminderStates.computeIfAbsent(player.getUniqueId(), uuid -> new ReminderState());
 
-        if (!state.fiveMinuteSent && remainingMillis <= FIVE_MINUTES_MS) {
-            MessageUtil.send(player, configManager.getTimedRemainingFiveMinutesMessage().replace("{remaining}", formatDuration(remainingMillis)));
-            state.fiveMinuteSent = true;
-        }
-
-        if (!state.oneMinuteSent && remainingMillis <= ONE_MINUTE_MS) {
-            MessageUtil.send(player, configManager.getTimedRemainingOneMinuteMessage().replace("{remaining}", formatDuration(remainingMillis)));
-            state.oneMinuteSent = true;
+        for (Map.Entry<Long, String> alert : configManager.getTimedRemainingAlerts().entrySet()) {
+            long thresholdSeconds = alert.getKey();
+            if (remainingMillis <= thresholdSeconds * 1000L && state.sentThresholds.add(thresholdSeconds)) {
+                MessageUtil.send(player, alert.getValue().replace("{remaining}", formatDuration(remainingMillis)));
+            }
         }
     }
 
@@ -112,7 +112,6 @@ public class ProtectionAlertManager implements Runnable {
     }
 
     private static final class ReminderState {
-        private boolean fiveMinuteSent;
-        private boolean oneMinuteSent;
+        private final Set<Long> sentThresholds = new HashSet<>();
     }
 }
