@@ -38,6 +38,7 @@ public class ConfigManager {
     // 남은 시간(초) -> 알림 메시지, 남은 시간이 큰 순서로 정렬
     private Map<Long, String> timedRemainingAlerts = new TreeMap<>(Comparator.reverseOrder());
     private String timedExpiredMessage;
+    private String timedExpiredOfflineMessage;
     private String timeFormat;
 
     private String soulboundAppliedMessage;
@@ -203,7 +204,8 @@ public class ConfigManager {
         timedAlreadyActiveMessage = getStringSafe(messagesConfig, "timed-already-active", "&e이미 보호 상태입니다. (남은 시간: {remaining})");
         timedActivatedMessage = getStringSafe(messagesConfig, "timed-activated", "&a인벤토리 보호가 {duration}분간 활성화되었습니다.");
         timedRemainingAlerts = loadTimedRemainingAlerts(messagesConfig);
-        timedExpiredMessage = getStringSafe(messagesConfig, "timed-expired", "&c인벤토리 보호 시간이 종료되었습니다.");
+        timedExpiredMessage = getStringSafe(messagesConfig, "timed-expired", "&c인벤토리 보호가 종료되었습니다. &7이제부터 사망 시 아이템을 잃을 수 있습니다.");
+        timedExpiredOfflineMessage = getStringSafe(messagesConfig, "timed-expired-offline", "&c자리를 비운 사이 인벤토리 보호가 종료되었습니다. &8(종료: {expired_at}) &7사망 시 아이템을 잃을 수 있으니 주의하세요.");
         timeFormat = getStringSafe(messagesConfig, "time-format", "{minutes}분 {seconds_padded}초");
         soulboundAppliedMessage = getStringSafe(messagesConfig, "soulbound-applied", "&a아이템에 영혼각인이 적용되었습니다. (대상: {owner}, 지속시간: {remaining})");
         soulboundExtendedMessage = getStringSafe(messagesConfig, "soulbound-extended", "&a이미 각인된 아이템의 유지시간이 연장되었습니다. (남은 시간: {remaining})");
@@ -253,7 +255,8 @@ public class ConfigManager {
         timedAlreadyActiveMessage = "&e이미 보호 상태입니다. (남은 시간: {remaining})";
         timedActivatedMessage = "&a인벤토리 보호가 {duration}분간 활성화되었습니다.";
         timedRemainingAlerts = loadTimedRemainingAlerts(null);
-        timedExpiredMessage = "&c인벤토리 보호 시간이 종료되었습니다.";
+        timedExpiredMessage = "&c인벤토리 보호가 종료되었습니다. &7이제부터 사망 시 아이템을 잃을 수 있습니다.";
+        timedExpiredOfflineMessage = "&c자리를 비운 사이 인벤토리 보호가 종료되었습니다. &8(종료: {expired_at}) &7사망 시 아이템을 잃을 수 있으니 주의하세요.";
         timeFormat = "{minutes}분 {seconds_padded}초";
         soulboundAppliedMessage = "&a아이템에 영혼각인이 적용되었습니다. (대상: {owner}, 지속시간: {remaining})";
         soulboundExtendedMessage = "&a이미 각인된 아이템의 유지시간이 연장되었습니다. (남은 시간: {remaining})";
@@ -283,6 +286,7 @@ public class ConfigManager {
     public String getTimedActivatedMessage() { return timedActivatedMessage; }
     public Map<Long, String> getTimedRemainingAlerts() { return Collections.unmodifiableMap(timedRemainingAlerts); }
     public String getTimedExpiredMessage() { return timedExpiredMessage; }
+    public String getTimedExpiredOfflineMessage() { return timedExpiredOfflineMessage; }
     public String getTimeFormat() { return timeFormat == null ? "{minutes}분 {seconds_padded}초" : timeFormat; }
     public String getSoulboundAppliedMessage() { return soulboundAppliedMessage; }
     public String getSoulboundExtendedMessage() { return soulboundExtendedMessage; }

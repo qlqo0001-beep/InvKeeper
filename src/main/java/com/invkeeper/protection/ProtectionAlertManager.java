@@ -84,16 +84,26 @@ public class ProtectionAlertManager implements Runnable {
     }
 
     private void checkPlayer(Player player) {
-        if (!protectionManager.getTimedProtectionStore().isActive(player)) {
+        TimedProtectionStore store = protectionManager.getTimedProtectionStore();
+        if (!store.isActive(player)) {
             // A state exists only if protection was active on a previous tick while
-            // the player was online, so this fires once at the moment it expires.
-            if (reminderStates.remove(player.getUniqueId()) != null) {
-                MessageUtil.send(player, configManager.getTimedExpiredMessage());
+            // the player was online; otherwise it ran out while they were offline.
+            boolean expiredWhileOnline = reminderStates.remove(player.getUniqueId()) != null;
+            long expiry = store.getExpiryMillis(player);
+            if (expiry >= 0) {
+                // Clear the stale expiry so the expiry notice is sent only once.
+                store.clear(player);
+                if (expiredWhileOnline) {
+                    MessageUtil.send(player, configManager.getTimedExpiredMessage());
+                } else {
+                    MessageUtil.send(player, configManager.getTimedExpiredOfflineMessage()
+                            .replace("{expired_at}", MessageUtil.formatExpiry(expiry)));
+                }
             }
             return;
         }
 
-        long remainingMillis = protectionManager.getTimedProtectionStore().getRemainingMillis(player);
+        long remainingMillis = store.getRemainingMillis(player);
         ReminderState state = reminderStates.computeIfAbsent(player.getUniqueId(), uuid -> new ReminderState());
 
         for (Map.Entry<Long, String> alert : configManager.getTimedRemainingAlerts().entrySet()) {
