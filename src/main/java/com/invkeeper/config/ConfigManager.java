@@ -139,9 +139,8 @@ public class ConfigManager {
                 if (ruleSection == null) continue;
                 double inventory = parseDoubleObject(ruleSection.get("inventory-drop-percent"), 0);
                 double exp = parseDoubleObject(ruleSection.get("exp-drop-percent"), 0);
-                // PvP 값이 없으면 일반 값과 동일하게 적용 (기존 설정 호환)
-                double pvpInventory = parseDoubleObject(ruleSection.get("pvp-inventory-drop-percent"), inventory);
-                double pvpExp = parseDoubleObject(ruleSection.get("pvp-exp-drop-percent"), exp);
+                Double pvpInventory = parseOptionalDoubleObject(ruleSection.get("pvp-inventory-drop-percent"));
+                Double pvpExp = parseOptionalDoubleObject(ruleSection.get("pvp-exp-drop-percent"));
                 WorldRule rule = new WorldRule(inventory, exp, pvpInventory, pvpExp);
                 if ("default".equalsIgnoreCase(key)) defaultWorldRule = rule;
                 worldRules.put(key, rule);
@@ -164,8 +163,8 @@ public class ConfigManager {
                 int priority = parseIntObject(map.get("priority"), 0);
                 double inventory = parseDoubleObject(map.get("inventory-drop-percent"), 0);
                 double exp = parseDoubleObject(map.get("exp-drop-percent"), 0);
-                double pvpInventory = parseDoubleObject(map.get("pvp-inventory-drop-percent"), inventory);
-                double pvpExp = parseDoubleObject(map.get("pvp-exp-drop-percent"), exp);
+                Double pvpInventory = parseOptionalDoubleObject(map.get("pvp-inventory-drop-percent"));
+                Double pvpExp = parseOptionalDoubleObject(map.get("pvp-exp-drop-percent"));
                 permissionRules.add(new PermissionRule(permission, priority, inventory, exp, pvpInventory, pvpExp));
             }
         }
@@ -381,20 +380,26 @@ public class ConfigManager {
     public String getGraveHistoryNoItemsMessage() { return graveHistoryNoItemsMessage; }
     public String getTimezone() { return timezone == null ? "Asia/Seoul" : timezone; }
 
-    public double[] resolveDropPercents(org.bukkit.entity.Player player, String worldName) {
-        return resolveDropPercents(player, worldName, false);
-    }
-
     /**
-     * 적용될 규칙은 PvP 여부와 관계없이 동일한 우선순위로 선택되고,
-     * PvP 사망이면 그 규칙의 pvp 값을 사용한다.
+     * [인벤토리 %, 경험치 %]를 반환한다. 일반(PvE) 값은 priority로 선택된 규칙의 값.
+     * PvP 값은 항목(인벤토리/경험치)별로 다음 순서 중 처음 설정된 값을 사용한다:
+     *   1. 적용된 권한 규칙의 pvp 값  2. 월드 규칙의 pvp 값  3. 적용된 규칙의 일반 값
      */
     public double[] resolveDropPercents(org.bukkit.entity.Player player, String worldName, boolean pvp) {
         PermissionRule selected = resolveEffectiveRule(player, worldName);
-        if (pvp) {
-            return new double[]{selected.getPvpInventoryDropPercent(), selected.getPvpExpDropPercent()};
+        if (!pvp) {
+            return new double[]{selected.getInventoryDropPercent(), selected.getExpDropPercent()};
         }
-        return new double[]{selected.getInventoryDropPercent(), selected.getExpDropPercent()};
+        WorldRule worldRule = resolveWorldRule(worldName);
+        return new double[]{
+                firstNonNull(selected.getPvpInventoryDropPercent(), worldRule.getPvpInventoryDropPercent(), selected.getInventoryDropPercent()),
+                firstNonNull(selected.getPvpExpDropPercent(), worldRule.getPvpExpDropPercent(), selected.getExpDropPercent())};
+    }
+
+    private static double firstNonNull(Double first, Double second, double fallback) {
+        if (first != null) return first;
+        if (second != null) return second;
+        return fallback;
     }
 
     public PermissionRule resolveEffectiveRule(org.bukkit.entity.Player player, String worldName) {
@@ -732,6 +737,16 @@ public class ConfigManager {
             if (s.equals("false") || s.equals("no") || s.equals("0")) return false;
         }
         return defaultValue;
+    }
+
+    /** 값이 없거나 숫자가 아니면 null. */
+    private static Double parseOptionalDoubleObject(Object value) {
+        if (value instanceof Number) return ((Number) value).doubleValue();
+        if (value instanceof String) {
+            try { return Double.parseDouble(((String) value).trim()); }
+            catch (NumberFormatException ignored) { return null; }
+        }
+        return null;
     }
 
     private static double parseDoubleObject(Object value, double defaultValue) {

@@ -3,15 +3,16 @@ package com.invkeeper.config;
 public final class WorldRule {
     private final double inventoryDropPercent;
     private final double expDropPercent;
-    private final double pvpInventoryDropPercent;
-    private final double pvpExpDropPercent;
+    // PvP 사망 시 드랍률. null = 설정 안 됨 (ConfigManager.resolveDropPercents에서 대체값 결정)
+    private final Double pvpInventoryDropPercent;
+    private final Double pvpExpDropPercent;
 
     public WorldRule(double inventoryDropPercent, double expDropPercent) {
-        this(inventoryDropPercent, expDropPercent, inventoryDropPercent, expDropPercent);
+        this(inventoryDropPercent, expDropPercent, null, null);
     }
 
     public WorldRule(double inventoryDropPercent, double expDropPercent,
-                     double pvpInventoryDropPercent, double pvpExpDropPercent) {
+                     Double pvpInventoryDropPercent, Double pvpExpDropPercent) {
         this.inventoryDropPercent = inventoryDropPercent;
         this.expDropPercent = expDropPercent;
         this.pvpInventoryDropPercent = pvpInventoryDropPercent;
@@ -26,11 +27,11 @@ public final class WorldRule {
         return expDropPercent;
     }
 
-    public double getPvpInventoryDropPercent() {
+    public Double getPvpInventoryDropPercent() {
         return pvpInventoryDropPercent;
     }
 
-    public double getPvpExpDropPercent() {
+    public Double getPvpExpDropPercent() {
         return pvpExpDropPercent;
     }
 }

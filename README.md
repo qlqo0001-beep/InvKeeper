@@ -31,7 +31,7 @@
 ### 4. 월드별 / 권한별 드랍율
 - `config.yml`의 `rules.world`로 월드별 인벤토리/경험치 드랍 퍼센트를 설정합니다.
 - `rules.permissions`로 권한별 우선순위(priority)와 드랍율을 설정할 수 있습니다. 우선순위가 높은 규칙이 우선 적용됩니다.
-- **PvP 드랍율**: 각 규칙에 `pvp-inventory-drop-percent` / `pvp-exp-drop-percent`를 추가하면 다른 플레이어에게 죽었을 때의 드랍율을 따로 줄 수 있습니다(생략 시 일반 드랍율과 동일). 어떤 규칙이 적용될지는 PvP 여부와 관계없이 priority로 정해지고, PvP 사망이면 그 규칙의 PvP 값이 쓰입니다. 자기 화살/TNT 등 자기 자신에 의한 사망은 PvE로 취급합니다.
+- **PvP 드랍율**: 각 규칙에 `pvp-inventory-drop-percent` / `pvp-exp-drop-percent`를 추가하면 다른 플레이어에게 죽었을 때의 드랍율을 따로 줄 수 있습니다. 인벤토리/경험치 각각 **① 적용된 권한 규칙의 pvp 값 → ② 월드 규칙의 pvp 값 → ③ 일반(PvE) 드랍율** 순으로 먼저 설정된 값이 적용됩니다. 따라서 월드에 pvp 값을 두면 등급 권한을 가진 플레이어에게도 적용됩니다. 자기 화살/TNT 등 자기 자신에 의한 사망은 PvE로 취급합니다.
 - `pvp.protection-items-work: false`로 두면 PvP 사망 시 보호권(소모형/시간형)이 발동하지 않습니다(소모되지도 않음).
 
 ### 5. MMOItems 연동
@@ -146,7 +146,8 @@ danger-notice:
 rules:
   world:
     # 0~100 사이의 값을 사용하세요. 0은 완전 보호, 100은 모든 아이템/경험치를 드랍합니다.
-    # PvP 사망 시 드랍율은 pvp-inventory-drop-percent / pvp-exp-drop-percent (생략 시 일반 값과 동일)
+    # PvP 사망 시 드랍율은 pvp-inventory-drop-percent / pvp-exp-drop-percent
+    # 적용 순서: 권한 규칙의 pvp 값 → 월드의 pvp 값 → 일반(PvE) 값
     default:        { inventory-drop-percent: 0,   exp-drop-percent: 0 }
     world:          { inventory-drop-percent: 50,  exp-drop-percent: 50 }
     world_nether:   { inventory-drop-percent: 70,  exp-drop-percent: 70 }

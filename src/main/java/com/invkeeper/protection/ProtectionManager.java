@@ -112,57 +112,11 @@ public class ProtectionManager {
     }
 
     public ProtectionItemConfig findMatchingTimedConfig(ItemStack item) {
-        if (item == null || item.getType().isAir()) {
-            return null;
-        }
-
-        String itemKey = vanillaProtectionItems.getItemKey(item);
-        if (itemKey != null) {
-            ProtectionItemConfig candidate = configManager.getProtectionItemConfig(itemKey);
-            if (candidate != null && candidate.getKind() == ProtectionItemConfig.Kind.TIMED_PROTECTION && candidate.isUseVanilla()) {
-                return candidate;
-            }
-        }
-
-        if (!mmoItemsHook.isAvailable()) {
-            return null;
-        }
-
-        for (ProtectionItemConfig candidate : configManager.getProtectionItemConfigs().values()) {
-            if (candidate.getKind() != ProtectionItemConfig.Kind.TIMED_PROTECTION) continue;
-            if (!candidate.isUseMmo()) continue;
-            if (mmoItemsHook.matches(item, candidate.getMmoItemsType(), candidate.getMmoItemsId())) {
-                return candidate;
-            }
-        }
-        return null;
+        return findMatchingConfig(item, ProtectionItemConfig.Kind.TIMED_PROTECTION);
     }
 
     public ProtectionItemConfig findMatchingConsumableConfig(ItemStack item) {
-        if (item == null || item.getType().isAir()) {
-            return null;
-        }
-
-        String itemKey = vanillaProtectionItems.getItemKey(item);
-        if (itemKey != null) {
-            ProtectionItemConfig candidate = configManager.getProtectionItemConfig(itemKey);
-            if (candidate != null && candidate.getKind() == ProtectionItemConfig.Kind.CONSUMABLE_PROTECTION && candidate.isUseVanilla()) {
-                return candidate;
-            }
-        }
-
-        if (!mmoItemsHook.isAvailable()) {
-            return null;
-        }
-
-        for (ProtectionItemConfig candidate : configManager.getProtectionItemConfigs().values()) {
-            if (candidate.getKind() != ProtectionItemConfig.Kind.CONSUMABLE_PROTECTION) continue;
-            if (!candidate.isUseMmo()) continue;
-            if (mmoItemsHook.matches(item, candidate.getMmoItemsType(), candidate.getMmoItemsId())) {
-                return candidate;
-            }
-        }
-        return null;
+        return findMatchingConfig(item, ProtectionItemConfig.Kind.CONSUMABLE_PROTECTION);
     }
 
     /**

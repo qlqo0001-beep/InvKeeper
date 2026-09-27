@@ -5,15 +5,16 @@ public final class PermissionRule {
     private final int priority;
     private final double inventoryDropPercent;
     private final double expDropPercent;
-    private final double pvpInventoryDropPercent;
-    private final double pvpExpDropPercent;
+    // PvP 사망 시 드랍률. null = 설정 안 됨 (ConfigManager.resolveDropPercents에서 대체값 결정)
+    private final Double pvpInventoryDropPercent;
+    private final Double pvpExpDropPercent;
 
     public PermissionRule(String permission, int priority, double inventoryDropPercent, double expDropPercent) {
-        this(permission, priority, inventoryDropPercent, expDropPercent, inventoryDropPercent, expDropPercent);
+        this(permission, priority, inventoryDropPercent, expDropPercent, null, null);
     }
 
     public PermissionRule(String permission, int priority, double inventoryDropPercent, double expDropPercent,
-                          double pvpInventoryDropPercent, double pvpExpDropPercent) {
+                          Double pvpInventoryDropPercent, Double pvpExpDropPercent) {
         this.permission = permission;
         this.priority = priority;
         this.inventoryDropPercent = inventoryDropPercent;
@@ -38,11 +39,11 @@ public final class PermissionRule {
         return expDropPercent;
     }
 
-    public double getPvpInventoryDropPercent() {
+    public Double getPvpInventoryDropPercent() {
         return pvpInventoryDropPercent;
     }
 
-    public double getPvpExpDropPercent() {
+    public Double getPvpExpDropPercent() {
         return pvpExpDropPercent;
     }
 }

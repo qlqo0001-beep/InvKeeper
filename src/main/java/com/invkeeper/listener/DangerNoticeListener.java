@@ -1,7 +1,6 @@
 package com.invkeeper.listener;
 
 import com.invkeeper.config.ConfigManager;
-import com.invkeeper.config.PermissionRule;
 import com.invkeeper.protection.ProtectionManager;
 import com.invkeeper.util.MessageUtil;
 import org.bukkit.Bukkit;
@@ -60,6 +59,11 @@ public class DangerNoticeListener implements Listener {
         lastNotice.remove(event.getPlayer().getUniqueId());
     }
 
+    /** 설정 리로드 후 다음 월드 이동 때 바뀐 드랍률이 안내되도록 기록을 비움 */
+    public void clearLastNotices() {
+        lastNotice.clear();
+    }
+
     public boolean isOptedOut(Player player) {
         return player.getPersistentDataContainer().has(optOutKey, PersistentDataType.BYTE);
     }
@@ -79,11 +83,12 @@ public class DangerNoticeListener implements Listener {
         if (!configManager.isDangerNoticeEnabled() || isOptedOut(player)) return;
 
         String world = player.getWorld().getName();
-        PermissionRule rule = configManager.resolveEffectiveRule(player, world);
-        int inv = percent(rule.getInventoryDropPercent());
-        int exp = percent(rule.getExpDropPercent());
-        int pvpInv = percent(rule.getPvpInventoryDropPercent());
-        int pvpExp = percent(rule.getPvpExpDropPercent());
+        double[] pve = configManager.resolveDropPercents(player, world, false);
+        double[] pvp = configManager.resolveDropPercents(player, world, true);
+        int inv = percent(pve[0]);
+        int exp = percent(pve[1]);
+        int pvpInv = percent(pvp[0]);
+        int pvpExp = percent(pvp[1]);
 
         String signature = inv + ":" + exp + ":" + pvpInv + ":" + pvpExp;
         if (signature.equals(lastNotice.put(player.getUniqueId(), signature))) return;

@@ -96,6 +96,7 @@ public class InvKeeperCommand implements CommandExecutor, TabCompleter {
         try {
             configManager.load();
             plugin.reloadAlertManager();
+            plugin.getDangerNoticeListener().clearLastNotices();
             protectionManager.refreshMmoHook();
             MessageUtil.send(sender, "&aInvKeeper 설정을 다시 불러왔습니다.");
             // Summary log
@@ -129,6 +130,9 @@ public class InvKeeperCommand implements CommandExecutor, TabCompleter {
             turnOn = true;
         } else if (args.length >= 2 && args[1].equalsIgnoreCase("off")) {
             turnOn = false;
+        } else if (args.length >= 2) {
+            MessageUtil.send(player, "&e사용법: /invkeeper notice [on|off]");
+            return true;
         } else {
             turnOn = notice.isOptedOut(player);
         }
@@ -155,10 +159,9 @@ public class InvKeeperCommand implements CommandExecutor, TabCompleter {
         MessageUtil.send(player, "&f적용 규칙: &b" + ruleName);
         MessageUtil.send(player, "&f인벤토리 드랍: &b" + selectedRule.getInventoryDropPercent() + "%");
         MessageUtil.send(player, "&f경험치 드랍: &b" + selectedRule.getExpDropPercent() + "%");
-        if (selectedRule.getPvpInventoryDropPercent() != selectedRule.getInventoryDropPercent()
-                || selectedRule.getPvpExpDropPercent() != selectedRule.getExpDropPercent()) {
-            MessageUtil.send(player, "&fPvP 사망 시 드랍: &b인벤토리 " + selectedRule.getPvpInventoryDropPercent()
-                    + "%, 경험치 " + selectedRule.getPvpExpDropPercent() + "%");
+        double[] pvpPercents = configManager.resolveDropPercents(player, player.getWorld().getName(), true);
+        if (pvpPercents[0] != selectedRule.getInventoryDropPercent() || pvpPercents[1] != selectedRule.getExpDropPercent()) {
+            MessageUtil.send(player, "&fPvP 사망 시 드랍: &b인벤토리 " + pvpPercents[0] + "%, 경험치 " + pvpPercents[1] + "%");
         }
         if (!configManager.isPvpProtectionItemsWork()) {
             MessageUtil.send(player, "&7(PvP 사망 시 보호권이 적용되지 않습니다)");

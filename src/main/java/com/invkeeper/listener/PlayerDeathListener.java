@@ -45,8 +45,10 @@ public class PlayerDeathListener implements Listener {
             event.setDroppedExp(0);
 
             if (pvp && !configManager.isPvpProtectionItemsWork()) {
-                // PvP 사망에는 보호권이 적용되지 않음 (소모하지 않음)
-                if (protectionManager.hasProtection(player)) {
+                // PvP 사망에는 보호권이 적용되지 않음 (소모하지 않음). 실제로 잃는 게 있을 때만 안내
+                double[] pvpPercents = configManager.resolveDropPercents(player, player.getWorld().getName(), true);
+                boolean losesSomething = Math.round(pvpPercents[0]) > 0 || Math.round(pvpPercents[1]) > 0;
+                if (losesSomething && protectionManager.hasProtection(player)) {
                     MessageUtil.send(player, configManager.getPvpProtectionIgnoredMessage());
                 }
             } else {
@@ -132,8 +134,15 @@ public class PlayerDeathListener implements Listener {
             }
 
             int totalExp = calculateExpLoss(player, expPercent);
-            com.invkeeper.grave.Grave grave = graveManager.createGrave(player, player.getLocation(), eq, oh, inv, totalExp,
-                    lockedUntil, lockExtraCastSeconds);
+            com.invkeeper.grave.Grave grave;
+            try {
+                grave = graveManager.createGrave(player, player.getLocation(), eq, oh, inv, totalExp,
+                        lockedUntil, lockExtraCastSeconds);
+            } catch (RuntimeException e) {
+                // 무덤 생성 실패 시 자물쇠는 사용되지 않았으므로 되돌림
+                if (lock != null) lock.refund(player);
+                throw e;
+            }
             if (lock != null) {
                 if (grave == null) {
                     // 잃은 것이 없어 무덤이 생성되지 않음 -> 자물쇠 되돌림
