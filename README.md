@@ -393,13 +393,16 @@ timed-activated: "&a인벤토리 보호가 {duration}분간 활성화되었습�
 # 예) 10: "&c보호 종료 10초 전입니다!" / 3: "&c3초 후 보호가 종료됩니다!"
 # - 순서는 상관없으며, 남은 시간이 긴 알림부터 전송됩니다.
 # - 1초마다 확인하므로 최대 1초 정도 늦게 뜰 수 있습니다. (예: 3초 알림은 2~3초 남았을 때 전송)
-#   정확한 남은 시간이 필요하면 {remaining} 을 사용하세요.
+#   정확한 남은 시간이 필요하면 {remaining} 을 사용하세요. ({remaining} 표시 형식은 time-format 을 따릅니다)
 # - 수정 후 /invkeeper reload 로 바로 적용됩니다.
 timed-remaining-alerts:
   300: "&e보호 상태가 5분 남았습니다. 남은 시간: {remaining}"
   60: "&e보호 상태가 1분 남았습니다. 남은 시간: {remaining}"
 # 시간형 보호권 사용 시간 종료 알림 ("" 로 비워두면 알림을 보내지 않습니다)
-timed-expired: "&c인벤토리 보호 시간이 종료되었습니다."
+timed-expired: "&c인벤토리 보호가 종료되었습니다. &7이제부터 사망 시 아이템을 잃을 수 있습니다."
+# 접속하지 않은 동안 보호 시간이 종료된 경우, 다음 접속 시 1회 알림 ("" 로 비워두면 알림을 보내지 않습니다)
+# {expired_at}: 종료 시각 (config.yml의 timezone 기준, 예: 2026-09-27 18:30)
+timed-expired-offline: "&c자리를 비운 사이 인벤토리 보호가 종료되었습니다. &8(종료: {expired_at}) &7사망 시 아이템을 잃을 수 있으니 주의하세요."
 soulbound-applied: "&a아이템에 영혼각인이 적용되었습니다. (대상: {owner}, 지속시간: {remaining})"
 soulbound-extended: "&a이미 각인된 아이템의 유지시간이 연장되었습니다. (남은 시간: {remaining})"
 soulbound-unbound: "&a아이템의 영혼각인이 해제되었습니다."

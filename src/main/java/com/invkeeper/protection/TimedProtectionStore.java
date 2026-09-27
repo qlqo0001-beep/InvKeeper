@@ -35,6 +35,17 @@ public class TimedProtectionStore {
         return Math.max(0, remaining);
     }
 
+    /**
+     * Returns the stored expiry epoch millis (even if already past), or -1 if none.
+     */
+    public long getExpiryMillis(Player player) {
+        if (player == null) {
+            return -1L;
+        }
+        Long expiry = player.getPersistentDataContainer().get(expiryKey, PersistentDataType.LONG);
+        return expiry == null ? -1L : expiry;
+    }
+
     public void activate(Player player, long durationSeconds) {
         if (player == null) {
             return;
