@@ -109,9 +109,16 @@ public class ProtectionAlertManager implements Runnable {
         for (Map.Entry<Long, String> alert : configManager.getTimedRemainingAlerts().entrySet()) {
             long thresholdSeconds = alert.getKey();
             if (remainingMillis <= thresholdSeconds * 1000L && state.sentThresholds.add(thresholdSeconds)) {
-                MessageUtil.send(player, alert.getValue().replace("{remaining}", MessageUtil.formatDuration(remainingMillis, configManager.getTimeFormat())));
+                MessageUtil.send(player, alert.getValue().replace("{remaining}", formatDuration(remainingMillis)));
             }
         }
+    }
+
+    private static String formatDuration(long millis) {
+        long totalSeconds = Math.max(0, millis / 1000);
+        long minutes = totalSeconds / 60;
+        long seconds = totalSeconds % 60;
+        return String.format("%d분 %02d초", minutes, seconds);
     }
 
     private static final class ReminderState {
