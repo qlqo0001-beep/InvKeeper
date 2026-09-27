@@ -12,11 +12,13 @@ import org.bukkit.plugin.Plugin;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.TreeMap;
 
 public class ConfigManager {
     private final Plugin plugin;
@@ -33,8 +35,9 @@ public class ConfigManager {
     private String timedProtectedMessage;
     private String timedAlreadyActiveMessage;
     private String timedActivatedMessage;
-    private String timedRemainingFiveMinutesMessage;
-    private String timedRemainingOneMinuteMessage;
+    // 남은 시간(초) -> 알림 메시지, 남은 시간이 큰 순서로 정렬
+    private Map<Long, String> timedRemainingAlerts = new TreeMap<>(Comparator.reverseOrder());
+    private String timedExpiredMessage;
     private String timeFormat;
 
     private String soulboundAppliedMessage;
@@ -199,8 +202,8 @@ public class ConfigManager {
         timedProtectedMessage = getStringSafe(messagesConfig, "timed-protected", "&a인벤토리 보호 상태 임으로 아무것도 잃지 않았습니다! (남은 시간: {remaining})");
         timedAlreadyActiveMessage = getStringSafe(messagesConfig, "timed-already-active", "&e이미 보호 상태입니다. (남은 시간: {remaining})");
         timedActivatedMessage = getStringSafe(messagesConfig, "timed-activated", "&a인벤토리 보호가 {duration}분간 활성화되었습니다.");
-        timedRemainingFiveMinutesMessage = getStringSafe(messagesConfig, "timed-remaining-five-minutes", "&e보호 상태가 5분 남았습니다. 남은 시간: {remaining}");
-        timedRemainingOneMinuteMessage = getStringSafe(messagesConfig, "timed-remaining-one-minute", "&e보호 상태가 1분 남았습니다. 남은 시간: {remaining}");
+        timedRemainingAlerts = loadTimedRemainingAlerts(messagesConfig);
+        timedExpiredMessage = getStringSafe(messagesConfig, "timed-expired", "&c인벤토리 보호 시간이 종료되었습니다.");
         timeFormat = getStringSafe(messagesConfig, "time-format", "{minutes}분 {seconds_padded}초");
         soulboundAppliedMessage = getStringSafe(messagesConfig, "soulbound-applied", "&a아이템에 영혼각인이 적용되었습니다. (대상: {owner}, 지속시간: {remaining})");
         soulboundExtendedMessage = getStringSafe(messagesConfig, "soulbound-extended", "&a이미 각인된 아이템의 유지시간이 연장되었습니다. (남은 시간: {remaining})");
@@ -215,14 +218,42 @@ public class ConfigManager {
         loadGraveMessages();
     }
 
+    /**
+     * timed-remaining-alerts 섹션(키: 남은 시간(초), 값: 메시지)을 읽는다.
+     * 섹션이 없으면 구버전 messages.yml 호환을 위해 기존 5분/1분 키를 사용한다.
+     */
+    private static Map<Long, String> loadTimedRemainingAlerts(ConfigurationSection messagesConfig) {
+        Map<Long, String> alerts = new TreeMap<>(Comparator.reverseOrder());
+        ConfigurationSection section = messagesConfig == null ? null : messagesConfig.getConfigurationSection("timed-remaining-alerts");
+        if (section == null) {
+            alerts.put(300L, getStringSafe(messagesConfig, "timed-remaining-five-minutes", "&e보호 상태가 5분 남았습니다. 남은 시간: {remaining}"));
+            alerts.put(60L, getStringSafe(messagesConfig, "timed-remaining-one-minute", "&e보호 상태가 1분 남았습니다. 남은 시간: {remaining}"));
+            return alerts;
+        }
+        for (String key : section.getKeys(false)) {
+            long seconds;
+            try {
+                seconds = Long.parseLong(key.trim());
+            } catch (NumberFormatException e) {
+                seconds = -1;
+            }
+            if (seconds <= 0) {
+                Bukkit.getLogger().warning("[InvKeeper] timed-remaining-alerts의 키 '" + key + "'는 1 이상의 초 단위 숫자여야 합니다. 무시합니다.");
+                continue;
+            }
+            alerts.put(seconds, getStringSafe(section, key, ""));
+        }
+        return alerts;
+    }
+
     private void setDefaultMessages() {
         deathMessage = "&c인벤토리 {inv_percent}% ({items_dropped}개), 경험치 {exp_percent}% ({exp_dropped}exp)를 잃었습니다.";
         protectedMessage = "&a인벤토리 보호권을 소모하여 아무것도 잃지 않았습니다!";
         timedProtectedMessage = "&a인벤토리 보호 상태 임으로 아무것도 잃지 않았습니다! (남은 시간: {remaining})";
         timedAlreadyActiveMessage = "&e이미 보호 상태입니다. (남은 시간: {remaining})";
         timedActivatedMessage = "&a인벤토리 보호가 {duration}분간 활성화되었습니다.";
-        timedRemainingFiveMinutesMessage = "&e보호 상태가 5분 남았습니다. 남은 시간: {remaining}";
-        timedRemainingOneMinuteMessage = "&e보호 상태가 1분 남았습니다. 남은 시간: {remaining}";
+        timedRemainingAlerts = loadTimedRemainingAlerts(null);
+        timedExpiredMessage = "&c인벤토리 보호 시간이 종료되었습니다.";
         timeFormat = "{minutes}분 {seconds_padded}초";
         soulboundAppliedMessage = "&a아이템에 영혼각인이 적용되었습니다. (대상: {owner}, 지속시간: {remaining})";
         soulboundExtendedMessage = "&a이미 각인된 아이템의 유지시간이 연장되었습니다. (남은 시간: {remaining})";
@@ -250,8 +281,8 @@ public class ConfigManager {
     public String getTimedProtectedMessage() { return timedProtectedMessage; }
     public String getTimedAlreadyActiveMessage() { return timedAlreadyActiveMessage; }
     public String getTimedActivatedMessage() { return timedActivatedMessage; }
-    public String getTimedRemainingFiveMinutesMessage() { return timedRemainingFiveMinutesMessage; }
-    public String getTimedRemainingOneMinuteMessage() { return timedRemainingOneMinuteMessage; }
+    public Map<Long, String> getTimedRemainingAlerts() { return Collections.unmodifiableMap(timedRemainingAlerts); }
+    public String getTimedExpiredMessage() { return timedExpiredMessage; }
     public String getTimeFormat() { return timeFormat == null ? "{minutes}분 {seconds_padded}초" : timeFormat; }
     public String getSoulboundAppliedMessage() { return soulboundAppliedMessage; }
     public String getSoulboundExtendedMessage() { return soulboundExtendedMessage; }

@@ -3,8 +3,13 @@ protected: "&a인벤토리 보호권을 소모하여 아무것도 잃지 않았�
 timed-protected: "&a인벤토리 보호 상태 임으로 아무것도 잃지 않았습니다! (남은 시간: {remaining})"
 timed-already-active: "&e이미 보호 상태입니다. (남은 시간: {remaining})"
 timed-activated: "&a인벤토리 보호가 {duration}분간 활성화되었습니다."
-timed-remaining-five-minutes: "&e보호 상태가 5분 남았습니다. 남은 시간: {remaining}"
-timed-remaining-one-minute: "&e보호 상태가 1분 남았습니다. 남은 시간: {remaining}"
+# 시간형 보호권 남은 시간 알림
+# 키: 남은 시간(초), 값: 메시지. 원하는 만큼 추가/삭제할 수 있습니다.
+timed-remaining-alerts:
+  300: "&e보호 상태가 5분 남았습니다. 남은 시간: {remaining}"
+  60: "&e보호 상태가 1분 남았습니다. 남은 시간: {remaining}"
+# 시간형 보호권 사용 시간 종료 알림 ("" 로 비워두면 알림을 보내지 않습니다)
+timed-expired: "&c인벤토리 보호 시간이 종료되었습니다."
 soulbound-applied: "&a아이템에 영혼각인이 적용되었습니다. (대상: {owner}, 지속시간: {remaining})"
 soulbound-extended: "&a이미 각인된 아이템의 유지시간이 연장되었습니다. (남은 시간: {remaining})"
 soulbound-unbound: "&a아이템의 영혼각인이 해제되었습니다."
