@@ -635,6 +635,7 @@ mvn clean package
 
 무덤 시스템은 v1.4.0에서 추가된 이후 아래와 같이 다듬어졌습니다. 전체 변경 이력은 [`RELEASE_NOTES/`](RELEASE_NOTES) 폴더의 버전별 파일을 참고하세요.
 
+- **v1.5.0**: 위험 지역 안내(`/invkeeper notice`로 개인 on/off), 무덤 자물쇠(`GRAVE_LOCK`), PvP/PvE 드랍율 분리(`pvp-*-drop-percent`, `pvp.protection-items-work`) 추가. 도굴 도구 판정(손에 든 지급 아이템만 인정), 무덤 사용 시 스택형 각인 미감소, `disabled-worlds`에서 아이템이 사라지던 문제 수정.
 - **v1.4.4**: 접속하지 않은 동안 시간형 보호가 종료된 경우, 다음 접속 시 종료 시각과 함께 알림(`timed-expired-offline`)을 1회 전송. 종료 알림 기본 문구에 사망 시 아이템 손실 경고 추가.
 - **v1.4.3**: 시간형 보호권 남은 시간 알림 시점을 `messages.yml`의 `timed-remaining-alerts`에서 초 단위로 자유롭게 설정(예: 5분/1분/10초/3초 전)할 수 있도록 변경. 보호 시간이 종료되는 순간 알림(`timed-expired`) 추가.
 - **v1.4.2**: 사망/무덤 열람/히스토리 조회 시 TPS·MSPT가 흔들리던 원인(메인 스레드 동기 디스크 I/O)을 비동기 처리로 해결. 서버 재시작 후 무덤 홀로그램이 겹쳐 보이던 문제, 도굴 취소 시 무덤 주인에게 알림이 가지 않던 문제, 도굴 도구 로어의 `{duration}` 미표기 문제 수정.
