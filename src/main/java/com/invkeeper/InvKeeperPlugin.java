@@ -22,6 +22,7 @@ public class InvKeeperPlugin extends JavaPlugin {
     private ProtectionAlertManager protectionAlertManager;
     private GraveManager graveManager;
     private GraveTickManager graveTickManager;
+    private DangerNoticeListener dangerNoticeListener;
 
     @Override
     public void onEnable() {
@@ -62,9 +63,11 @@ public class InvKeeperPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new SoulbindInventoryListener(protectionManager, configManager), this);
         getServer().getPluginManager().registerEvents(new SoulbindTransferListener(protectionManager, configManager), this);
         getServer().getPluginManager().registerEvents(new SoulbindUseListener(protectionManager, configManager), this);
+        dangerNoticeListener = new DangerNoticeListener(this, configManager, protectionManager);
+        getServer().getPluginManager().registerEvents(dangerNoticeListener, this);
 
         // ── Grave listeners ──────────────────────────────────
-        getServer().getPluginManager().registerEvents(new GraveInteractListener(graveManager), this);
+        getServer().getPluginManager().registerEvents(new GraveInteractListener(graveManager, protectionManager), this);
         getServer().getPluginManager().registerEvents(new GraveProtectionListener(graveManager), this);
         getServer().getPluginManager().registerEvents(new GraveGuiListener(graveManager), this);
         getServer().getPluginManager().registerEvents(new GraveAdminGuiListener(graveManager), this);
@@ -128,6 +131,7 @@ public class InvKeeperPlugin extends JavaPlugin {
         return protectionManager;
     }
     public GraveManager getGraveManager() { return graveManager; }
+    public DangerNoticeListener getDangerNoticeListener() { return dangerNoticeListener; }
 
     /**
      * Shuts down the current alert manager (if any) and creates a fresh one using the

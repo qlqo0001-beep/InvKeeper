@@ -32,6 +32,10 @@ public final class Grave {
     // 사망 시점 원본 스냅샷 (히스토리 보존용)
     private GraveContents originalContents;
 
+    // 무덤 자물쇠: 이 시각(epoch millis)까지 도굴 시작 불가 (0 = 없음), 도굴 시전 시간 증가량(초)
+    private long lockedUntil;
+    private int lockExtraCastSeconds;
+
     public Grave(UUID graveId, UUID ownerUuid, String ownerName, String worldName,
                  int x, int y, int z, long createdAt, long expireAt,
                  String blockType, BlockData originalBlockData,
@@ -73,6 +77,15 @@ public final class Grave {
     public UUID getActiveLootSessionId() { return activeLootSessionId; }
     public long getRecoveredAt() { return recoveredAt; }
     public RecoveryType getRecoveredBy() { return recoveredBy; }
+
+    public long getLockedUntil() { return lockedUntil; }
+    public int getLockExtraCastSeconds() { return lockExtraCastSeconds; }
+    public boolean isLocked() { return lockedUntil > System.currentTimeMillis(); }
+    public long getLockRemainingMillis() { return Math.max(0, lockedUntil - System.currentTimeMillis()); }
+    public void setLock(long lockedUntil, int extraCastSeconds) {
+        this.lockedUntil = lockedUntil;
+        this.lockExtraCastSeconds = Math.max(0, extraCastSeconds);
+    }
 
     public GraveContents getOriginalContents() { return originalContents; }
     public void setOriginalContents(GraveContents originalContents) {

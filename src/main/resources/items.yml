@@ -8,6 +8,8 @@
 #   SOULBIND_TOOL_TIME       - 시간형 각인 도구 (아이템에 시간 기반 각인 적용)
 #   SOULBIND_TOOL_STACK      - 스택형 각인 도구 (아이템에 스택 기반 각인 적용)
 #   SOULBIND_UNBIND_TOOL     - 영혼각인 해제 도구 (각인 제거)
+#   GRAVE_LOOT_TOOL          - 도굴 도구 (손에 들고 남의 무덤을 우클릭하여 도굴 시전)
+#   GRAVE_LOCK               - 무덤 자물쇠 (사망 시 소지하고 있으면 1개 소모되어 무덤에 자물쇠가 걸림)
 #
 # 각인 도구 설정:
 #   SOULBIND_TOOL_TIME:
@@ -218,3 +220,32 @@ items:
     vanilla-lore:
       - "&7무덤을 우클릭하면"
       - "&7{duration}초 후 무덤을 도굴할 수 있습니다."
+
+  # ============================================
+  # 무덤 자물쇠
+  # ============================================
+  # 사망 시 인벤토리에 있으면 1개가 자동으로 소모되어, 생성되는 무덤에 자물쇠가 걸립니다.
+  # (보호권이 발동했거나 잃은 것이 없어 무덤이 생성되지 않으면 소모되지 않습니다)
+  #   lock-seconds:       사망 후 이 시간(초) 동안 다른 플레이어가 도굴을 시작할 수 없음 (0 = 미적용)
+  #   extra-cast-seconds: 도굴 시전 시간이 이만큼(초) 늘어남 (0 = 미적용)
+  # 두 값을 동시에 설정할 수 있습니다. 로어에서 {lock_seconds}, {extra_cast_seconds} 사용 가능.
+  # soulbind를 켜두면 자물쇠 자체가 무덤에 담기거나 남에게 넘어가지 않습니다.
+
+  grave_lock_vanilla:
+    kind: GRAVE_LOCK
+    use-type: vanilla
+    lock-seconds: 300
+    extra-cast-seconds: 120
+    vanilla-material: IRON_BARS
+    vanilla-name: "&6무덤 자물쇠"
+    vanilla-lore:
+      - "&7소지한 채 사망하면 자동으로 소모되어"
+      - "&7무덤에 자물쇠를 겁니다."
+      - ""
+      - "&f사망 후 &e{lock_seconds}초&f간 도굴 불가"
+      - "&f도굴 시간 &e+{extra_cast_seconds}초"
+      - ""
+      - "&e[자동 발동]"
+    soulbind:
+      enabled: true
+      duration-minutes: 0

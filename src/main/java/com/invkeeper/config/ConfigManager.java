@@ -27,6 +27,8 @@ public class ConfigManager {
     private final List<PermissionRule> permissionRules = new ArrayList<>();
 
     private boolean forceKeepInventoryFalse = true;
+    private boolean pvpProtectionItemsWork = true;
+    private boolean dangerNoticeEnabled = true;
 
     private final Map<String, ProtectionItemConfig> protectionItemConfigs = new LinkedHashMap<>();
 
@@ -40,6 +42,17 @@ public class ConfigManager {
     private String timedExpiredMessage;
     private String timedExpiredOfflineMessage;
     private String timeFormat;
+    private String deathPvpMessage;
+    private String pvpProtectionIgnoredMessage;
+    private String dangerNoticeMessage;
+    private String dangerNoticePvpMessage;
+    private String dangerNoticeSafeMessage;
+    private String dangerNoticeProtectedMessage;
+    private String dangerNoticeToggleOnMessage;
+    private String dangerNoticeToggleOffMessage;
+    private String dangerNoticeServerDisabledMessage;
+    private String graveLockAppliedMessage;
+    private String graveLootLockedMessage;
 
     private String soulboundAppliedMessage;
     private String soulboundExtendedMessage;
@@ -107,6 +120,8 @@ public class ConfigManager {
         FileConfiguration config = plugin.getConfig();
 
         forceKeepInventoryFalse = getBooleanSafe(config, "force-keep-inventory-false", true);
+        pvpProtectionItemsWork = getBooleanSafe(config, "pvp.protection-items-work", true);
+        dangerNoticeEnabled = getBooleanSafe(config, "danger-notice.enabled", true);
         soulbindScanBatches = Math.max(1, getIntSafe(config, "soulbind-scan-batches", 5));
         timezone = getStringSafe(config, "timezone", "Asia/Seoul");
         maxSoulbindStack = parseIntObject(config.get("max-soulbind-stack"), -1);
@@ -124,7 +139,10 @@ public class ConfigManager {
                 if (ruleSection == null) continue;
                 double inventory = parseDoubleObject(ruleSection.get("inventory-drop-percent"), 0);
                 double exp = parseDoubleObject(ruleSection.get("exp-drop-percent"), 0);
-                WorldRule rule = new WorldRule(inventory, exp);
+                // PvP 값이 없으면 일반 값과 동일하게 적용 (기존 설정 호환)
+                double pvpInventory = parseDoubleObject(ruleSection.get("pvp-inventory-drop-percent"), inventory);
+                double pvpExp = parseDoubleObject(ruleSection.get("pvp-exp-drop-percent"), exp);
+                WorldRule rule = new WorldRule(inventory, exp, pvpInventory, pvpExp);
                 if ("default".equalsIgnoreCase(key)) defaultWorldRule = rule;
                 worldRules.put(key, rule);
                 // Warn if world name doesn't exist (but don't block - world might not be loaded yet)
@@ -146,7 +164,9 @@ public class ConfigManager {
                 int priority = parseIntObject(map.get("priority"), 0);
                 double inventory = parseDoubleObject(map.get("inventory-drop-percent"), 0);
                 double exp = parseDoubleObject(map.get("exp-drop-percent"), 0);
-                permissionRules.add(new PermissionRule(permission, priority, inventory, exp));
+                double pvpInventory = parseDoubleObject(map.get("pvp-inventory-drop-percent"), inventory);
+                double pvpExp = parseDoubleObject(map.get("pvp-exp-drop-percent"), exp);
+                permissionRules.add(new PermissionRule(permission, priority, inventory, exp, pvpInventory, pvpExp));
             }
         }
 
@@ -207,6 +227,15 @@ public class ConfigManager {
         timedExpiredMessage = getStringSafe(messagesConfig, "timed-expired", "&c인벤토리 보호가 종료되었습니다. &7이제부터 사망 시 아이템을 잃을 수 있습니다.");
         timedExpiredOfflineMessage = getStringSafe(messagesConfig, "timed-expired-offline", "&c자리를 비운 사이 인벤토리 보호가 종료되었습니다. &8(종료: {expired_at}) &7사망 시 아이템을 잃을 수 있으니 주의하세요.");
         timeFormat = getStringSafe(messagesConfig, "time-format", "{minutes}분 {seconds_padded}초");
+        deathPvpMessage = getStringSafe(messagesConfig, "death-pvp", "&c{killer}에게 사망하여 인벤토리 {inv_percent}% ({items_dropped}개), 경험치 {exp_percent}% ({exp_dropped}exp)를 잃었습니다.");
+        pvpProtectionIgnoredMessage = getStringSafe(messagesConfig, "pvp-protection-ignored", "&cPvP로 사망하여 보호권이 적용되지 않았습니다.");
+        dangerNoticeMessage = getStringSafe(messagesConfig, "danger-notice", "&c⚠ 위험 지역 &7({world}) &f사망 시 인벤토리 {inv_percent}%, 경험치 {exp_percent}%를 잃습니다.");
+        dangerNoticePvpMessage = getStringSafe(messagesConfig, "danger-notice-pvp", "&7└ PvP 사망 시: 인벤토리 {pvp_inv_percent}%, 경험치 {pvp_exp_percent}%");
+        dangerNoticeSafeMessage = getStringSafe(messagesConfig, "danger-notice-safe", "&a안전 지역 &7({world}) &f사망해도 아무것도 잃지 않습니다.");
+        dangerNoticeProtectedMessage = getStringSafe(messagesConfig, "danger-notice-protected", "&b└ 보호 중 &7(남은 시간: {remaining})");
+        dangerNoticeToggleOnMessage = getStringSafe(messagesConfig, "danger-notice-toggle-on", "&a위험 지역 안내를 켰습니다.");
+        dangerNoticeToggleOffMessage = getStringSafe(messagesConfig, "danger-notice-toggle-off", "&e위험 지역 안내를 껐습니다. &7(/invkeeper notice on 으로 다시 켤 수 있습니다)");
+        dangerNoticeServerDisabledMessage = getStringSafe(messagesConfig, "danger-notice-server-disabled", "&c서버에서 위험 지역 안내 기능이 꺼져 있습니다.");
         soulboundAppliedMessage = getStringSafe(messagesConfig, "soulbound-applied", "&a아이템에 영혼각인이 적용되었습니다. (대상: {owner}, 지속시간: {remaining})");
         soulboundExtendedMessage = getStringSafe(messagesConfig, "soulbound-extended", "&a이미 각인된 아이템의 유지시간이 연장되었습니다. (남은 시간: {remaining})");
         soulboundUnboundMessage = getStringSafe(messagesConfig, "soulbound-unbound", "&a아이템의 영혼각인이 해제되었습니다.");
@@ -258,6 +287,15 @@ public class ConfigManager {
         timedExpiredMessage = "&c인벤토리 보호가 종료되었습니다. &7이제부터 사망 시 아이템을 잃을 수 있습니다.";
         timedExpiredOfflineMessage = "&c자리를 비운 사이 인벤토리 보호가 종료되었습니다. &8(종료: {expired_at}) &7사망 시 아이템을 잃을 수 있으니 주의하세요.";
         timeFormat = "{minutes}분 {seconds_padded}초";
+        deathPvpMessage = "&c{killer}에게 사망하여 인벤토리 {inv_percent}% ({items_dropped}개), 경험치 {exp_percent}% ({exp_dropped}exp)를 잃었습니다.";
+        pvpProtectionIgnoredMessage = "&cPvP로 사망하여 보호권이 적용되지 않았습니다.";
+        dangerNoticeMessage = "&c⚠ 위험 지역 &7({world}) &f사망 시 인벤토리 {inv_percent}%, 경험치 {exp_percent}%를 잃습니다.";
+        dangerNoticePvpMessage = "&7└ PvP 사망 시: 인벤토리 {pvp_inv_percent}%, 경험치 {pvp_exp_percent}%";
+        dangerNoticeSafeMessage = "&a안전 지역 &7({world}) &f사망해도 아무것도 잃지 않습니다.";
+        dangerNoticeProtectedMessage = "&b└ 보호 중 &7(남은 시간: {remaining})";
+        dangerNoticeToggleOnMessage = "&a위험 지역 안내를 켰습니다.";
+        dangerNoticeToggleOffMessage = "&e위험 지역 안내를 껐습니다. &7(/invkeeper notice on 으로 다시 켤 수 있습니다)";
+        dangerNoticeServerDisabledMessage = "&c서버에서 위험 지역 안내 기능이 꺼져 있습니다.";
         soulboundAppliedMessage = "&a아이템에 영혼각인이 적용되었습니다. (대상: {owner}, 지속시간: {remaining})";
         soulboundExtendedMessage = "&a이미 각인된 아이템의 유지시간이 연장되었습니다. (남은 시간: {remaining})";
         soulboundUnboundMessage = "&a아이템의 영혼각인이 해제되었습니다.";
@@ -274,6 +312,8 @@ public class ConfigManager {
     public WorldRule getDefaultWorldRule() { return defaultWorldRule; }
     public List<PermissionRule> getPermissionRules() { return Collections.unmodifiableList(permissionRules); }
     public boolean isForceKeepInventoryFalse() { return forceKeepInventoryFalse; }
+    public boolean isPvpProtectionItemsWork() { return pvpProtectionItemsWork; }
+    public boolean isDangerNoticeEnabled() { return dangerNoticeEnabled; }
     public int getSoulbindScanBatches() { return soulbindScanBatches; }
     public int getMaxSoulbindStack() { return maxSoulbindStack; }
     public int getSoulbindPickupMessageCooldownSeconds() { return soulbindPickupMessageCooldownSeconds; }
@@ -287,6 +327,17 @@ public class ConfigManager {
     public Map<Long, String> getTimedRemainingAlerts() { return Collections.unmodifiableMap(timedRemainingAlerts); }
     public String getTimedExpiredMessage() { return timedExpiredMessage; }
     public String getTimedExpiredOfflineMessage() { return timedExpiredOfflineMessage; }
+    public String getDeathPvpMessage() { return deathPvpMessage; }
+    public String getPvpProtectionIgnoredMessage() { return pvpProtectionIgnoredMessage; }
+    public String getDangerNoticeMessage() { return dangerNoticeMessage; }
+    public String getDangerNoticePvpMessage() { return dangerNoticePvpMessage; }
+    public String getDangerNoticeSafeMessage() { return dangerNoticeSafeMessage; }
+    public String getDangerNoticeProtectedMessage() { return dangerNoticeProtectedMessage; }
+    public String getDangerNoticeToggleOnMessage() { return dangerNoticeToggleOnMessage; }
+    public String getDangerNoticeToggleOffMessage() { return dangerNoticeToggleOffMessage; }
+    public String getDangerNoticeServerDisabledMessage() { return dangerNoticeServerDisabledMessage; }
+    public String getGraveLockAppliedMessage() { return graveLockAppliedMessage; }
+    public String getGraveLootLockedMessage() { return graveLootLockedMessage; }
     public String getTimeFormat() { return timeFormat == null ? "{minutes}분 {seconds_padded}초" : timeFormat; }
     public String getSoulboundAppliedMessage() { return soulboundAppliedMessage; }
     public String getSoulboundExtendedMessage() { return soulboundExtendedMessage; }
@@ -331,14 +382,26 @@ public class ConfigManager {
     public String getTimezone() { return timezone == null ? "Asia/Seoul" : timezone; }
 
     public double[] resolveDropPercents(org.bukkit.entity.Player player, String worldName) {
+        return resolveDropPercents(player, worldName, false);
+    }
+
+    /**
+     * 적용될 규칙은 PvP 여부와 관계없이 동일한 우선순위로 선택되고,
+     * PvP 사망이면 그 규칙의 pvp 값을 사용한다.
+     */
+    public double[] resolveDropPercents(org.bukkit.entity.Player player, String worldName, boolean pvp) {
         PermissionRule selected = resolveEffectiveRule(player, worldName);
+        if (pvp) {
+            return new double[]{selected.getPvpInventoryDropPercent(), selected.getPvpExpDropPercent()};
+        }
         return new double[]{selected.getInventoryDropPercent(), selected.getExpDropPercent()};
     }
 
     public PermissionRule resolveEffectiveRule(org.bukkit.entity.Player player, String worldName) {
         WorldRule worldRule = resolveWorldRule(worldName);
         List<PermissionRule> candidates = new ArrayList<>();
-        candidates.add(new PermissionRule("__world__", 0, worldRule.getInventoryDropPercent(), worldRule.getExpDropPercent()));
+        candidates.add(new PermissionRule("__world__", 0, worldRule.getInventoryDropPercent(), worldRule.getExpDropPercent(),
+                worldRule.getPvpInventoryDropPercent(), worldRule.getPvpExpDropPercent()));
         for (PermissionRule permissionRule : permissionRules) {
             if (player.hasPermission(permissionRule.getPermission())) {
                 candidates.add(permissionRule);
@@ -391,13 +454,15 @@ public class ConfigManager {
         int applyDuration = parseSoulbindApplyDuration(section, kind);
         int stacks = parseSoulbindStacks(section, kind);
         int castTimeSeconds = getIntSafe(section, "cast-time-seconds", 300);
+        int lockSeconds = kind == ProtectionItemConfig.Kind.GRAVE_LOCK ? getIntSafe(section, "lock-seconds", 0) : 0;
+        int extraCastSeconds = kind == ProtectionItemConfig.Kind.GRAVE_LOCK ? getIntSafe(section, "extra-cast-seconds", 0) : 0;
 
         return new ProtectionItemConfig(
                 itemKey, kind, useMmo, useVanilla,
                 mmoItemsType, mmoItemsId, durationMinutes,
                 vanillaMaterial, vanillaName, vanillaLore, customModelData,
                 soulbind.enabled, soulbind.durationMinutes, soulbind.infinite,
-                applyDuration, stacks, castTimeSeconds);
+                applyDuration, stacks, castTimeSeconds, lockSeconds, extraCastSeconds);
     }
 
     /** Small typed holder for soulbind parse results (avoids mixing boolean/int in an array). */
@@ -451,7 +516,7 @@ public class ConfigManager {
         boolean soulbindEnabled = false;
         int soulbindDurationMinutes = 0;
         boolean soulbindInfinite = false;
-        if (kind.isProtection() && section.contains("soulbind")) {
+        if ((kind.isProtection() || kind.isGraveLock()) && section.contains("soulbind")) {
             Object raw = section.get("soulbind");
             if (raw instanceof Boolean) {
                 soulbindEnabled = (Boolean) raw;
@@ -508,7 +573,7 @@ public class ConfigManager {
         ConfigurationSection gs = config.getConfigurationSection("grave");
         if (gs == null) {
             graveContainerConfig = new GraveContainerConfig(GraveContainerConfig.ContainerType.VANILLA, "BARREL", "", "");
-            graveHologramConfig = new GraveHologramConfig(true, 1.0, 20, "{player} 의 무덤 {remaining}", "{player} 의 무덤", "도굴중 {remaining}", "{looter}님이 도굴을 한 {owner}의 무덤");
+            graveHologramConfig = new GraveHologramConfig(true, 1.0, 20, "{player} 의 무덤 {remaining}", "{player} 의 무덤", "도굴중 {remaining}", "{looter}님이 도굴을 한 {owner}의 무덤", "&6[잠김] {remaining}");
             return;
         }
         graveEnabled = gs.getBoolean("enabled", true);
@@ -537,9 +602,9 @@ public class ConfigManager {
         }
         ConfigurationSection hs = config.getConfigurationSection("grave.hologram");
         if (hs != null) {
-            graveHologramConfig = new GraveHologramConfig(hs.getBoolean("enabled", true), hs.getDouble("offset-y", 1.0), hs.getInt("update-interval-ticks", 20), hs.getString("line-format", "{player} 의 무덤 {remaining}"), hs.getString("line-format-unlimited", "{player} 의 무덤"), hs.getString("looting-line-format", "도굴중 {remaining}"), hs.getString("looted-line-format", "{looter}님이 도굴을 한 {owner}의 무덤"));
+            graveHologramConfig = new GraveHologramConfig(hs.getBoolean("enabled", true), hs.getDouble("offset-y", 1.0), hs.getInt("update-interval-ticks", 20), hs.getString("line-format", "{player} 의 무덤 {remaining}"), hs.getString("line-format-unlimited", "{player} 의 무덤"), hs.getString("looting-line-format", "도굴중 {remaining}"), hs.getString("looted-line-format", "{looter}님이 도굴을 한 {owner}의 무덤"), hs.getString("locked-line-format", "&6[잠김] {remaining}"));
         } else {
-            graveHologramConfig = new GraveHologramConfig(true, 1.0, 20, "{player} 의 무덤 {remaining}", "{player} 의 무덤", "도굴중 {remaining}", "{looter}님이 도굴을 한 {owner}의 무덤");
+            graveHologramConfig = new GraveHologramConfig(true, 1.0, 20, "{player} 의 무덤 {remaining}", "{player} 의 무덤", "도굴중 {remaining}", "{looter}님이 도굴을 한 {owner}의 무덤", "&6[잠김] {remaining}");
         }
         ConfigurationSection hcs = gs.getConfigurationSection("history");
         if (hcs != null) { graveHistoryRetentionDays = hcs.getInt("retention-days", 30); graveHistoryMaxEntries = hcs.getInt("max-entries-per-player", 50); }
@@ -558,6 +623,8 @@ public class ConfigManager {
         graveLootCancelledMessage = msg.getString("grave-loot-cancelled", "&c{owner}이 확인하여 취소");
         graveLootBlockedOwnerMessage = msg.getString("grave-loot-blocked-owner", "&a무덤 도굴을 막았습니다!");
         graveLootAlreadyInProgressMessage = msg.getString("grave-loot-already-in-progress", "&c이미 도굴중");
+        graveLockAppliedMessage = msg.getString("grave-lock-applied", "&6무덤에 자물쇠를 걸었습니다. &7(도굴 불가 {lock_seconds}초, 도굴 시간 +{extra_cast_seconds}초)");
+        graveLootLockedMessage = msg.getString("grave-loot-locked", "&c자물쇠가 걸린 무덤입니다. {remaining} 후 도굴할 수 있습니다.");
         graveLootSelfBlockedMessage = msg.getString("grave-loot-self-blocked", "&c자신의 무덤 불가");
         graveLootCompleteCasterMessage = msg.getString("grave-loot-complete-caster", "&a도굴 완료!");
         graveLootItemRequiredMessage = msg.getString("grave-loot-item-required", "&c도굴 아이템 필요");

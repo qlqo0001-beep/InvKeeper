@@ -93,6 +93,10 @@ public class GraveHologramManager {
                 line2 = line2.replace("{remaining}", MessageUtil.formatDuration(session.getRemainingMillis(), "{minutes}분 {seconds_padded}초"));
             }
             sb.append("\n").append(MessageUtil.color(line2));
+        } else if (grave.getState() == GraveState.ACTIVE && grave.isLocked()) {
+            String line2 = config.getLockedLineFormat()
+                    .replace("{remaining}", MessageUtil.formatDuration(grave.getLockRemainingMillis(), "{minutes}분 {seconds_padded}초"));
+            sb.append("\n").append(MessageUtil.color(line2));
         } else if (grave.getState() == GraveState.LOOTED) {
             String line2 = config.getLootedLineFormat()
                     .replace("{looter}", grave.getLooterName() != null ? grave.getLooterName() : "?")

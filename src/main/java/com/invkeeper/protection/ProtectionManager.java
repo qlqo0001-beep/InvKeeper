@@ -38,6 +38,22 @@ public class ProtectionManager {
         this.mmoItemsHook.refresh();
     }
 
+    /**
+     * 보호 상태(시간형 활성) 또는 소모형 보호권 소지 여부. 아무것도 소모하지 않는다.
+     */
+    public boolean hasProtection(Player player) {
+        if (timedProtectionStore.isActive(player)) {
+            return true;
+        }
+        PlayerInventory inventory = player.getInventory();
+        for (int slot = 0; slot <= 40; slot++) {
+            if (findMatchingConsumableConfig(inventory.getItem(slot)) != null) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public ProtectionResult checkAndConsumeProtection(Player player) {
         if (timedProtectionStore.isActive(player)) {
             return ProtectionResult.TIMED;
@@ -144,6 +160,79 @@ public class ProtectionManager {
             if (!candidate.isUseMmo()) continue;
             if (mmoItemsHook.matches(item, candidate.getMmoItemsType(), candidate.getMmoItemsId())) {
                 return candidate;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 지급된 바닐라 아이템(PDC 키) 또는 MMOItems 아이템 중 지정한 kind에 해당하는 설정을 찾는다.
+     */
+    public ProtectionItemConfig findMatchingConfig(ItemStack item, ProtectionItemConfig.Kind kind) {
+        if (item == null || item.getType().isAir()) {
+            return null;
+        }
+
+        String itemKey = vanillaProtectionItems.getItemKey(item);
+        if (itemKey != null) {
+            ProtectionItemConfig candidate = configManager.getProtectionItemConfig(itemKey);
+            if (candidate != null && candidate.getKind() == kind && candidate.isUseVanilla()) {
+                return candidate;
+            }
+        }
+
+        if (!mmoItemsHook.isAvailable()) {
+            return null;
+        }
+
+        for (ProtectionItemConfig candidate : configManager.getProtectionItemConfigs().values()) {
+            if (candidate.getKind() != kind) continue;
+            if (!candidate.isUseMmo()) continue;
+            if (mmoItemsHook.matches(item, candidate.getMmoItemsType(), candidate.getMmoItemsId())) {
+                return candidate;
+            }
+        }
+        return null;
+    }
+
+    /** 사망 시 소모된 무덤 자물쇠. 무덤이 생성되지 않으면 refund()로 되돌린다. */
+    public static final class TakenGraveLock {
+        private final ProtectionItemConfig config;
+        private final int slot;
+        private final ItemStack original;
+
+        private TakenGraveLock(ProtectionItemConfig config, int slot, ItemStack original) {
+            this.config = config;
+            this.slot = slot;
+            this.original = original;
+        }
+
+        public ProtectionItemConfig getConfig() { return config; }
+
+        public void refund(Player player) {
+            player.getInventory().setItem(slot, original);
+        }
+    }
+
+    /**
+     * 인벤토리에서 무덤 자물쇠 1개를 소모한다. 없으면 null.
+     */
+    public TakenGraveLock takeGraveLock(Player player) {
+        PlayerInventory inventory = player.getInventory();
+        for (int slot = 0; slot <= 40; slot++) {
+            ItemStack item = inventory.getItem(slot);
+            ProtectionItemConfig matched = findMatchingConfig(item, ProtectionItemConfig.Kind.GRAVE_LOCK);
+            if (matched != null) {
+                ItemStack original = item.clone();
+                ItemStack clone = item.clone();
+                int amount = clone.getAmount() - 1;
+                if (amount <= 0) {
+                    inventory.setItem(slot, null);
+                } else {
+                    clone.setAmount(amount);
+                    inventory.setItem(slot, clone);
+                }
+                return new TakenGraveLock(matched, slot, original);
             }
         }
         return null;

@@ -97,10 +97,20 @@ public class GraveManager {
         lootSessionManager.startTicking();
     }
 
+    /**
+     * 이 월드에서 사망 시 무덤이 생성되는지 여부 (무덤 시스템 활성 + disabled-worlds 제외).
+     */
+    public boolean isGraveWorld(World world) {
+        return enabled && world != null && !disabledWorlds.contains(world.getName().toLowerCase());
+    }
+
+    /**
+     * @param lockedUntil      무덤 자물쇠: 이 시각까지 도굴 시작 불가 (0 = 없음)
+     * @param lockExtraCastSeconds 무덤 자물쇠: 도굴 시전 시간 증가량(초)
+     */
     public Grave createGrave(Player player, Location deathLoc, ItemStack[] eq, ItemStack oh,
-                             ItemStack[] inv, int totalExp) {
-        if (!enabled) return null;
-        if (disabledWorlds.contains(deathLoc.getWorld().getName().toLowerCase())) return null;
+                             ItemStack[] inv, int totalExp, long lockedUntil, int lockExtraCastSeconds) {
+        if (!isGraveWorld(deathLoc.getWorld())) return null;
         boolean has = false;
         for (ItemStack it : eq) if (it != null && !it.getType().isAir()) has = true;
         if (oh != null && !oh.getType().isAir()) has = true;
@@ -131,6 +141,7 @@ public class GraveManager {
             deathLoc.getBlockX(), deathLoc.getBlockY(), deathLoc.getBlockZ(),
             System.currentTimeMillis(), expireAt, bt, orig, gc);
         grave.setOriginalContents(gc); // 사망 시점 원본 스냅샷 (히스토리용)
+        grave.setLock(lockedUntil, lockExtraCastSeconds);
         blockProvider.place(deathLoc, bt);
         byGraveId.put(gid, grave);
         byLocation.put(locKey(grave), grave);
