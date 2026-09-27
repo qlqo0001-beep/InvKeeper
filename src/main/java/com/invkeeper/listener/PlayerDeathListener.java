@@ -32,6 +32,9 @@ public class PlayerDeathListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH)
     public void onPlayerDeath(PlayerDeathEvent event) {
+        // 다른 플레이어에게 죽었으면 PvP 사망 (자기 자신의 화살/TNT 등은 PvE로 취급)
+        Player killer = event.getEntity().getKiller();
+        boolean pvp = killer != null && !killer.getUniqueId().equals(event.getEntity().getUniqueId());
         try {
             Player player = event.getEntity();
             if (player == null) return;
@@ -41,16 +44,25 @@ public class PlayerDeathListener implements Listener {
             event.getDrops().clear();
             event.setDroppedExp(0);
 
-            ProtectionManager.ProtectionResult result = protectionManager.checkAndConsumeProtection(player);
-            if (result != ProtectionManager.ProtectionResult.NONE) {
-                if (result == ProtectionManager.ProtectionResult.TIMED) {
-                    long remainingMillis = protectionManager.getTimedProtectionStore().getRemainingMillis(player);
-                    String remaining = MessageUtil.formatDuration(remainingMillis, configManager.getTimeFormat());
-                    MessageUtil.send(player, configManager.getTimedProtectedMessage().replace("{remaining}", remaining));
-                } else {
-                    MessageUtil.send(player, configManager.getProtectedMessage());
+            if (pvp && !configManager.isPvpProtectionItemsWork()) {
+                // PvP 사망에는 보호권이 적용되지 않음 (소모하지 않음). 실제로 잃는 게 있을 때만 안내
+                double[] pvpPercents = configManager.resolveDropPercents(player, player.getWorld().getName(), true);
+                boolean losesSomething = Math.round(pvpPercents[0]) > 0 || Math.round(pvpPercents[1]) > 0;
+                if (losesSomething && protectionManager.hasProtection(player)) {
+                    MessageUtil.send(player, configManager.getPvpProtectionIgnoredMessage());
                 }
-                return;
+            } else {
+                ProtectionManager.ProtectionResult result = protectionManager.checkAndConsumeProtection(player);
+                if (result != ProtectionManager.ProtectionResult.NONE) {
+                    if (result == ProtectionManager.ProtectionResult.TIMED) {
+                        long remainingMillis = protectionManager.getTimedProtectionStore().getRemainingMillis(player);
+                        String remaining = MessageUtil.formatDuration(remainingMillis, configManager.getTimeFormat());
+                        MessageUtil.send(player, configManager.getTimedProtectedMessage().replace("{remaining}", remaining));
+                    } else {
+                        MessageUtil.send(player, configManager.getProtectedMessage());
+                    }
+                    return;
+                }
             }
         } catch (Exception e) {
             // Log exception but don't crash the plugin
@@ -71,12 +83,23 @@ public class PlayerDeathListener implements Listener {
             }
         }
 
-        double[] percents = configManager.resolveDropPercents(player, player.getWorld().getName());
+        double[] percents = configManager.resolveDropPercents(player, player.getWorld().getName(), pvp);
         int inventoryPercent = clamp((int) Math.round(percents[0]), 0, 100);
         int expPercent = clamp((int) Math.round(percents[1]), 0, 100);
 
         // ── Grave system path ────────────────────────────────
-        if (graveManager != null && graveManager.isEnabled()) {
+        // disabled-worlds에서는 무덤 대신 아래 기존 드랍 방식으로 처리
+        if (graveManager != null && graveManager.isGraveWorld(player.getWorld())) {
+            // 무덤 자물쇠는 드랍 선정 전에 1개 소모 (무덤이 생성되지 않으면 되돌림)
+            ProtectionManager.TakenGraveLock lock = protectionManager.takeGraveLock(player);
+            long lockedUntil = 0;
+            int lockExtraCastSeconds = 0;
+            if (lock != null) {
+                int lockSeconds = lock.getConfig().getLockSeconds();
+                lockedUntil = lockSeconds > 0 ? System.currentTimeMillis() + lockSeconds * 1000L : 0;
+                lockExtraCastSeconds = lock.getConfig().getExtraCastSeconds();
+            }
+
             // Use same percent-based selection logic as the old dropInventory
             List<Integer> occupiedSlots = new ArrayList<>();
             for (int slot = 0; slot < 41; slot++) {
@@ -111,15 +134,31 @@ public class PlayerDeathListener implements Listener {
             }
 
             int totalExp = calculateExpLoss(player, expPercent);
-            graveManager.createGrave(player, player.getLocation(), eq, oh, inv, totalExp);
+            com.invkeeper.grave.Grave grave;
+            try {
+                grave = graveManager.createGrave(player, player.getLocation(), eq, oh, inv, totalExp,
+                        lockedUntil, lockExtraCastSeconds);
+            } catch (RuntimeException e) {
+                // 무덤 생성 실패 시 자물쇠는 사용되지 않았으므로 되돌림
+                if (lock != null) lock.refund(player);
+                throw e;
+            }
+            if (lock != null) {
+                if (grave == null) {
+                    // 잃은 것이 없어 무덤이 생성되지 않음 -> 자물쇠 되돌림
+                    lock.refund(player);
+                } else {
+                    MessageUtil.send(player, configManager.getGraveLockAppliedMessage()
+                            .replace("{lock_seconds}", String.valueOf(lock.getConfig().getLockSeconds()))
+                            .replace("{extra_cast_seconds}", String.valueOf(lock.getConfig().getExtraCastSeconds())));
+                }
+            }
+
+            decrementStackSoulbinds(player, inventory, soulbind);
 
             int actualLostPercent = occupiedSlots.isEmpty() ? 0
                 : clamp((int) Math.round(slotsToDrop * 100.0 / occupiedSlots.size()), 0, 100);
-            MessageUtil.send(player, configManager.getDeathMessage()
-                    .replace("{inv_percent}", String.valueOf(actualLostPercent))
-                    .replace("{exp_percent}", String.valueOf(expPercent))
-                    .replace("{items_dropped}", String.valueOf(slotsToDrop))
-                    .replace("{exp_dropped}", String.valueOf(totalExp)));
+            sendDeathMessage(player, pvp ? killer : null, actualLostPercent, expPercent, slotsToDrop, totalExp);
             return;
         }
 
@@ -129,7 +168,27 @@ public class PlayerDeathListener implements Listener {
 
         int actualLostPercent = totalOccupiedSlots <= 0 ? 0 : clamp((int) Math.round(droppedItems * 100.0 / totalOccupiedSlots), 0, 100);
 
-        // Phase 3: Decrement STACK soulbinds after drop calculation (item was protected this death)
+        decrementStackSoulbinds(player, inventory, soulbind);
+
+        sendDeathMessage(player, pvp ? killer : null, actualLostPercent, expPercent, droppedItems, droppedExp);
+    }
+
+    private void sendDeathMessage(Player player, Player killer, int invPercent, int expPercent, int itemsDropped, int expDropped) {
+        String message = killer != null
+                ? configManager.getDeathPvpMessage().replace("{killer}", killer.getName())
+                : configManager.getDeathMessage();
+        MessageUtil.send(player, message
+                .replace("{inv_percent}", String.valueOf(invPercent))
+                .replace("{exp_percent}", String.valueOf(expPercent))
+                .replace("{items_dropped}", String.valueOf(itemsDropped))
+                .replace("{exp_dropped}", String.valueOf(expDropped)));
+    }
+
+    /**
+     * Phase 3: Decrement STACK soulbinds after drop calculation (item was protected this death)
+     */
+    private void decrementStackSoulbinds(Player player, PlayerInventory inventory,
+                                         com.invkeeper.soulbind.SoulbindManager soulbind) {
         if (soulbind != null) {
             for (int slot = 0; slot <= 40; slot++) {
                 ItemStack item = inventory.getItem(slot);
@@ -151,12 +210,6 @@ public class PlayerDeathListener implements Listener {
                 }
             }
         }
-
-        MessageUtil.send(player, configManager.getDeathMessage()
-                .replace("{inv_percent}", String.valueOf(actualLostPercent))
-                .replace("{exp_percent}", String.valueOf(expPercent))
-                .replace("{items_dropped}", String.valueOf(droppedItems))
-                .replace("{exp_dropped}", String.valueOf(droppedExp)));
     }
 
     private int dropInventory(Player player, int percent) {

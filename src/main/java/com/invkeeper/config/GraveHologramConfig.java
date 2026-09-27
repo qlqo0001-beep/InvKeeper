@@ -12,10 +12,11 @@ public final class GraveHologramConfig {
     private final String lineFormatUnlimited;
     private final String lootingLineFormat;
     private final String lootedLineFormat;
+    private final String lockedLineFormat;
 
     public GraveHologramConfig(boolean enabled, double offsetY, int updateIntervalTicks,
                                String lineFormat, String lineFormatUnlimited,
-                               String lootingLineFormat, String lootedLineFormat) {
+                               String lootingLineFormat, String lootedLineFormat, String lockedLineFormat) {
         this.enabled = enabled;
         this.offsetY = offsetY;
         this.updateIntervalTicks = updateIntervalTicks;
@@ -23,6 +24,7 @@ public final class GraveHologramConfig {
         this.lineFormatUnlimited = lineFormatUnlimited;
         this.lootingLineFormat = lootingLineFormat;
         this.lootedLineFormat = lootedLineFormat;
+        this.lockedLineFormat = lockedLineFormat;
     }
 
     public boolean isEnabled() { return enabled; }
@@ -32,4 +34,5 @@ public final class GraveHologramConfig {
     public String getLineFormatUnlimited() { return lineFormatUnlimited; }
     public String getLootingLineFormat() { return lootingLineFormat; }
     public String getLootedLineFormat() { return lootedLineFormat; }
+    public String getLockedLineFormat() { return lockedLineFormat; }
 }

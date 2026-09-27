@@ -31,6 +31,8 @@
 ### 4. 월드별 / 권한별 드랍율
 - `config.yml`의 `rules.world`로 월드별 인벤토리/경험치 드랍 퍼센트를 설정합니다.
 - `rules.permissions`로 권한별 우선순위(priority)와 드랍율을 설정할 수 있습니다. 우선순위가 높은 규칙이 우선 적용됩니다.
+- **PvP 드랍율**: 각 규칙에 `pvp-inventory-drop-percent` / `pvp-exp-drop-percent`를 추가하면 다른 플레이어에게 죽었을 때의 드랍율을 따로 줄 수 있습니다. 인벤토리/경험치 각각 **① 적용된 권한 규칙의 pvp 값 → ② 월드 규칙의 pvp 값 → ③ 일반(PvE) 드랍율** 순으로 먼저 설정된 값이 적용됩니다. 따라서 월드에 pvp 값을 두면 등급 권한을 가진 플레이어에게도 적용됩니다. 자기 화살/TNT 등 자기 자신에 의한 사망은 PvE로 취급합니다.
+- `pvp.protection-items-work: false`로 두면 PvP 사망 시 보호권(소모형/시간형)이 발동하지 않습니다(소모되지도 않음).
 
 ### 5. MMOItems 연동
 - MMOItems로 등록된 아이템도 보호권 및 각인 도구로 사용할 수 있습니다.
@@ -41,10 +43,16 @@
 - 위 월드별/권한별 드랍율 설정은 무덤이 켜져 있어도 그대로 "얼마나 잃는지" 계산에 쓰이며, 잃는 몫이 바닥 대신 무덤에 담깁니다.
 - **가상 GUI**: 실제 통 인벤토리가 아니라 플러그인이 관리하는 가상 GUI로 열립니다. 장비 4칸·왼손 1칸·인벤토리 36칸이 원래 슬롯 그대로 표시되고, 남은 경험치는 경험치병 아이콘으로 표시되어 클릭 시 회수됩니다. "모두 회수" 버튼(기본 슬롯 49, 맨 아랫줄 중앙)으로 한 번에 전량 회수하면 GUI가 자동으로 닫힙니다. 미사용 슬롯은 이름 없는 회색 색유리판으로 채워집니다.
 - **도굴**: 타인의 무덤은 기본적으로 열 수 없으며, 도굴 도구(`grave_loot_vanilla` 등, kind: `GRAVE_LOOT_TOOL`)를 사용해 일정 시간(기본 300초) 시전해야 열 수 있습니다. 시전 중 무덤 주인이 무덤을 열면 도굴이 즉시 취소되고 도굴자·주인 모두에게 안내 메시지가 전송됩니다. 시전 상태는 서버 재시작 후에도 남은 시간 그대로 이어집니다.
+- **무덤 자물쇠**: 자물쇠 아이템(`grave_lock_vanilla` 등, kind: `GRAVE_LOCK`)을 소지한 채 사망하면 1개가 소모되어 무덤에 자물쇠가 걸립니다. `lock-seconds`(사망 후 도굴 시작 불가 시간)와 `extra-cast-seconds`(도굴 시전 시간 증가)를 아이템마다 설정할 수 있고 둘을 함께 걸 수도 있습니다. 잠긴 동안 홀로그램에 남은 잠금 시간이 표시되며, 무덤이 생성되지 않으면(보호권 발동, 잃은 것 없음) 자물쇠는 소모되지 않습니다.
 - **만료**: `grave.expire` 설정으로 무덤이 일정 시간 후 자동 소멸하도록 할 수 있고, 권한별로 다른 만료 시간(`invkeeper.grave.time.vip`, `invkeeper.grave.time.vvip`)을 부여할 수 있습니다.
 - **홀로그램**: 무덤 위에 TextDisplay 엔티티로 소유자/남은 시간/도굴 상태를 실시간 표시합니다(외부 홀로그램 플러그인 불필요). 서버 재시작 시에도 중복 없이 자동으로 다시 스폰됩니다.
 - **히스토리**: 무덤이 사라질 때(회수/도굴/만료) 사망 시점 원본 아이템 스냅샷과 회수 상태가 기록됩니다. 어드민은 `/invkeeper grave history <player>`로 조회해 좌클릭으로 무덤 위치까지 텔레포트, 우클릭으로 그 당시 상태 그대로의 가상 GUI를 열어 아이템을 회수할 수 있습니다. 회수됨(노랑)/도굴됨(빨강)/미회수(연두) 상태가 색유리판으로 구분됩니다.
 - **성능**: 무덤 관련 디스크 저장(생성/회수/도굴/히스토리)은 모두 비동기로 처리되어, 사망이나 무덤 상호작용이 서버 TPS/MSPT에 영향을 주지 않습니다.
+
+### 7. 위험 지역 안내
+- 접속 시 1회, 그리고 월드를 옮겨 적용 드랍율이 바뀌었을 때 "⚠ 위험 지역: 사망 시 인벤토리 N% 손실"을 채팅으로 안내합니다. PvP 드랍율이 다르면 함께 표시하고, 시간형 보호 중이면 남은 시간도 보여줍니다.
+- 권한 규칙 때문에 드랍율이 그대로라면 월드를 옮겨도 다시 안내하지 않습니다.
+- 어드민은 `config.yml`의 `danger-notice.enabled`로 서버 전체 on/off, 플레이어는 `/invkeeper notice [on|off]`로 개인 on/off 할 수 있습니다(개인 설정은 재접속 후에도 유지).
 
 ---
 
@@ -53,6 +61,7 @@
 | 명령어 | 설명 | 권한 |
 |--------|------|------|
 | `/invkeeper status` | 현재 적용 중인 드랍율과 시간제 보호 상태를 확인합니다 | `invkeeper.status` |
+| `/invkeeper notice [on\|off]` | 위험 지역 안내를 개인적으로 켜고 끕니다 (인자 없으면 전환) | `invkeeper.notice` |
 | `/invkeeper reload` | 설정 파일을 다시 불러옵니다 | `invkeeper.admin` |
 | `/invkeeper give <플레이어> <아이템> [개수]` | 보호 아이템을 지급합니다 | `invkeeper.admin` |
 | `/invkeeper soulbind inspect <플레이어>` | 대상 플레이어의 각인된 아이템 목록을 확인합니다 | `invkeeper.admin` |
@@ -70,6 +79,7 @@
 | 권한 | 설명 |
 |------|------|
 | `invkeeper.status` | 자신의 InvKeeper 보호 상태를 확인할 수 있음 |
+| `invkeeper.notice` | 위험 지역 안내를 개인적으로 켜고 끌 수 있음 (기본: 모두 허용) |
 | `invkeeper.admin` | 모든 관리자 명령어 사용 및 각인 우회 |
 | `invkeeper.soulbind.bypass` | 다른 플레이어의 각인된 아이템도 자유롭게 다룰 수 있음 |
 | `invkeeper.drop.1` ~ `invkeeper.drop.11` | 등급별 사망 드랍 규칙 적용 (`config.yml`의 `rules.permissions`에서 등급별 우선순위/드랍율 설정, 기본값은 숫자가 클수록 우선순위 높음) |
@@ -125,13 +135,25 @@ timezone: "Asia/Seoul"
 # - 양수: 해당 값이 최대 스택 수 (도구의 soulbind-stacks가 이 값보다 크면 제한됨)
 max-soulbind-stack: -1
 
+# PvP 사망 시 보호권(소모형/시간형) 작동 여부 (false = PvP에서는 보호권 미적용)
+pvp:
+  protection-items-work: true
+
+# 위험 지역 안내 서버 전체 on/off (개인 on/off는 /invkeeper notice)
+danger-notice:
+  enabled: true
+
 rules:
   world:
     # 0~100 사이의 값을 사용하세요. 0은 완전 보호, 100은 모든 아이템/경험치를 드랍합니다.
+    # PvP 사망 시 드랍율은 pvp-inventory-drop-percent / pvp-exp-drop-percent
+    # 적용 순서: 권한 규칙의 pvp 값 → 월드의 pvp 값 → 일반(PvE) 값
     default:        { inventory-drop-percent: 0,   exp-drop-percent: 0 }
     world:          { inventory-drop-percent: 50,  exp-drop-percent: 50 }
     world_nether:   { inventory-drop-percent: 70,  exp-drop-percent: 70 }
     world_the_end:  { inventory-drop-percent: 100, exp-drop-percent: 100 }
+    # 예) PvP로 죽으면 더 많이 잃는 월드
+    # pvp_world:    { inventory-drop-percent: 30, exp-drop-percent: 30, pvp-inventory-drop-percent: 80, pvp-exp-drop-percent: 80 }
 
   permissions:
     # priority가 높은 규칙이 우선 적용됩니다. (등급이 여러 개면 아래처럼 촘촘하게 나눌 수 있습니다)
@@ -170,7 +192,7 @@ grave:
         seconds: -1
   history: { retention-days: 30, max-entries-per-player: 50 }   # 둘 다 0 이하 = 무제한
   disabled-worlds: []
-  hologram: { enabled: true, offset-y: 1.0, update-interval-ticks: 20 }
+  hologram: { enabled: true, offset-y: 1.0, update-interval-ticks: 20, locked-line-format: "&6[잠김] {remaining}" }
   protection: { prevent-block-break: true, prevent-explosion: true, prevent-piston: true, prevent-hopper: true }
 ```
 
@@ -350,6 +372,21 @@ items:
     vanilla-lore:
       - "&7무덤을 우클릭하면"
       - "&7{duration}초 후 무덤을 도굴할 수 있습니다."
+
+  # 무덤 자물쇠 (바닐라) — 사망 시 소지하면 1개 소모되어 무덤에 자물쇠가 걸림
+  grave_lock_vanilla:
+    kind: GRAVE_LOCK
+    use-type: vanilla
+    lock-seconds: 300          # 사망 후 300초 동안 도굴 시작 불가 (0 = 미적용)
+    extra-cast-seconds: 120    # 도굴 시전 시간 +120초 (0 = 미적용)
+    vanilla-material: IRON_BARS
+    vanilla-name: "&6무덤 자물쇠"
+    vanilla-lore:
+      - "&f사망 후 &e{lock_seconds}초&f간 도굴 불가"
+      - "&f도굴 시간 &e+{extra_cast_seconds}초"
+    soulbind:
+      enabled: true
+      duration-minutes: 0
 ```
 
 **지원하는 아이템 종류 (kind):**
@@ -361,7 +398,8 @@ items:
 | `SOULBIND_TOOL_TIME` | 시간형 각인 도구 (`soulbind-duration`으로 시간 설정) |
 | `SOULBIND_TOOL_STACK` | 스택형 각인 도구 (`soulbind-stacks`로 스택 설정) |
 | `SOULBIND_UNBIND_TOOL` | 각인 해제 도구 |
-| `GRAVE_LOOT_TOOL` | 무덤 도굴 도구 (`cast-time-seconds`로 시전 시간(초) 설정, 로어의 `{duration}`으로 표시) |
+| `GRAVE_LOOT_TOOL` | 무덤 도굴 도구 (`cast-time-seconds`로 시전 시간(초) 설정, 로어의 `{duration}`으로 표시). 손에 들고 무덤을 우클릭해야 하며, `/invkeeper give`로 지급한 아이템(또는 MMOItems)만 인정됩니다 |
+| `GRAVE_LOCK` | 무덤 자물쇠 (`lock-seconds`: 도굴 불가 시간, `extra-cast-seconds`: 도굴 시간 증가, 로어의 `{lock_seconds}`/`{extra_cast_seconds}`로 표시) |
 
 **use-type:**
 - `vanilla` — 마인크래프트 기본 아이템 (`vanilla-material`, `vanilla-name`, `vanilla-lore` 사용)
@@ -384,7 +422,9 @@ items:
 
 ```yaml
 death: "&c인벤토리 {inv_percent}% ({items_dropped}개), 경험치 {exp_percent}% ({exp_dropped}exp)를 잃었습니다."
+death-pvp: "&c{killer}에게 사망하여 인벤토리 {inv_percent}% ({items_dropped}개), 경험치 {exp_percent}% ({exp_dropped}exp)를 잃었습니다."
 protected: "&a인벤토리 보호권을 소모하여 아무것도 잃지 않았습니다!"
+pvp-protection-ignored: "&cPvP로 사망하여 보호권이 적용되지 않았습니다."
 timed-protected: "&a인벤토리 보호 상태 임으로 아무것도 잃지 않았습니다! (남은 시간: {remaining})"
 timed-already-active: "&e이미 보호 상태입니다. (남은 시간: {remaining})"
 timed-activated: "&a인벤토리 보호가 {duration}분간 활성화되었습니다."
@@ -413,6 +453,14 @@ soulbound-lore-format: "&7각인: &b{owner} &7| 만료: &b{expiry}"
 soulbound-lore-format-stack: "&7각인: &b{owner} &7| 횟수: &b{stacks}"
 soulbound-conflict-type: "&c이 아이템은 {type} 각인 상태입니다. 다른 타입의 각인을 적용할 수 없습니다."
 time-format: "{minutes}분 {seconds_padded}초"
+# 위험 지역 안내
+danger-notice: "&c⚠ 위험 지역 &7({world}) &f사망 시 인벤토리 {inv_percent}%, 경험치 {exp_percent}%를 잃습니다."
+danger-notice-pvp: "&7└ PvP 사망 시: 인벤토리 {pvp_inv_percent}%, 경험치 {pvp_exp_percent}%"
+danger-notice-safe: "&a안전 지역 &7({world}) &f사망해도 아무것도 잃지 않습니다."
+danger-notice-protected: "&b└ 보호 중 &7(남은 시간: {remaining})"
+danger-notice-toggle-on: "&a위험 지역 안내를 켰습니다."
+danger-notice-toggle-off: "&e위험 지역 안내를 껐습니다. &7(/invkeeper notice on 으로 다시 켤 수 있습니다)"
+danger-notice-server-disabled: "&c서버에서 위험 지역 안내 기능이 꺼져 있습니다."
 ```
 
 무덤 시스템 관련 메시지는 파일 하단에 별도 섹션으로 있습니다:
@@ -431,9 +479,11 @@ grave-loot-blocked-owner: "&a무덤 도굴을 막았습니다!"
 grave-loot-already-in-progress: "&c이미 다른 플레이어가 이 무덤을 도굴하고 있습니다."
 grave-loot-self-blocked: "&c자신의 무덤은 도굴할 수 없습니다."
 grave-loot-complete-caster: "&a도굴이 완료되었습니다! 이제 무덤을 열 수 있습니다."
-grave-loot-item-required: "&c도굴 아이템이 필요합니다."
+grave-loot-item-required: "&c도굴 도구를 손에 들고 우클릭해야 합니다."
 grave-history-emptied: "&a히스토리에 남아있던 아이템을 모두 회수했습니다. (히스토리는 유지됩니다)"
 grave-history-no-items: "&c이 무덤에는 남아있는 아이템이 없습니다."
+grave-lock-applied: "&6무덤에 자물쇠를 걸었습니다. &7(도굴 불가 {lock_seconds}초, 도굴 시간 +{extra_cast_seconds}초)"
+grave-loot-locked: "&c자물쇠가 걸린 무덤입니다. {remaining} 후 도굴할 수 있습니다."
 ```
 
 **Placeholders:**
@@ -450,6 +500,9 @@ grave-history-no-items: "&c이 무덤에는 남아있는 아이템이 없습니�
 - `{minutes}`, `{seconds}`, `{seconds_padded}`, `{total_seconds}` — 시간 포맷용 (grave-loot-start-caster의 `{seconds}`는 도굴 시전 시간(초)을 그대로 넣어줌)
 - `{world}`, `{x}`, `{y}`, `{z}` — 무덤 좌표 (grave-created, grave-expired)
 - `{max}` — 플레이어당 무덤 최대 개수 (grave-max-reached)
+- `{killer}` — 죽인 플레이어 이름 (death-pvp)
+- `{world}`, `{pvp_inv_percent}`, `{pvp_exp_percent}` — 위험 지역 안내용 월드 이름 / PvP 드랍 퍼센트
+- `{lock_seconds}`, `{extra_cast_seconds}` — 무덤 자물쇠의 도굴 불가 시간 / 도굴 시간 증가량 (초)
 
 ---
 
@@ -493,11 +546,12 @@ com.invkeeper
 │   ├── ConfigManager.java        # config.yml/items.yml/messages.yml/gui.yml 로드 및 규칙 해석
 │   ├── WorldRule.java             # 월드별 드랍율
 │   ├── PermissionRule.java        # 권한별 드랍율 (priority 기반)
-│   ├── ProtectionItemConfig.java  # 아이템 설정 (CONSUMABLE/TIMED/SOULBIND_*/GRAVE_LOOT_TOOL)
+│   ├── ProtectionItemConfig.java  # 아이템 설정 (CONSUMABLE/TIMED/SOULBIND_*/GRAVE_LOOT_TOOL/GRAVE_LOCK)
 │   └── GraveContainerConfig.java / GraveGuiConfig.java / GraveHologramConfig.java / GraveExpireRule.java
 │       # 무덤 컨테이너/GUI/홀로그램/만료 설정
 ├── listener/
-│   ├── PlayerDeathListener.java   # 사망 처리 (무덤 활성화 시 무덤 생성 경로로 분기)
+│   ├── PlayerDeathListener.java   # 사망 처리 (PvP 판정, 무덤 활성화 시 무덤 생성 경로로 분기, 무덤 자물쇠 적용)
+│   ├── DangerNoticeListener.java  # 위험 지역 안내 (접속/월드 이동 시, 개인 on/off)
 │   ├── ProtectionItemUseListener.java # 시간형 보호권 우클릭 사용
 │   ├── SoulbindInventoryListener.java # 각인 도구 드래그-드랍 (TIME/STACK 분기)
 │   ├── SoulbindPickupListener.java    # 각인 아이템 픽업 제한
@@ -581,6 +635,7 @@ mvn clean package
 
 무덤 시스템은 v1.4.0에서 추가된 이후 아래와 같이 다듬어졌습니다. 전체 변경 이력은 [`RELEASE_NOTES/`](RELEASE_NOTES) 폴더의 버전별 파일을 참고하세요.
 
+- **v1.5.0**: 위험 지역 안내(`/invkeeper notice`로 개인 on/off), 무덤 자물쇠(`GRAVE_LOCK`), PvP/PvE 드랍율 분리(`pvp-*-drop-percent`, `pvp.protection-items-work`) 추가. 도굴 도구 판정(손에 든 지급 아이템만 인정), 무덤 사용 시 스택형 각인 미감소, `disabled-worlds`에서 아이템이 사라지던 문제 수정.
 - **v1.4.4**: 접속하지 않은 동안 시간형 보호가 종료된 경우, 다음 접속 시 종료 시각과 함께 알림(`timed-expired-offline`)을 1회 전송. 종료 알림 기본 문구에 사망 시 아이템 손실 경고 추가.
 - **v1.4.3**: 시간형 보호권 남은 시간 알림 시점을 `messages.yml`의 `timed-remaining-alerts`에서 초 단위로 자유롭게 설정(예: 5분/1분/10초/3초 전)할 수 있도록 변경. 보호 시간이 종료되는 순간 알림(`timed-expired`) 추가.
 - **v1.4.2**: 사망/무덤 열람/히스토리 조회 시 TPS·MSPT가 흔들리던 원인(메인 스레드 동기 디스크 I/O)을 비동기 처리로 해결. 서버 재시작 후 무덤 홀로그램이 겹쳐 보이던 문제, 도굴 취소 시 무덤 주인에게 알림이 가지 않던 문제, 도굴 도구 로어의 `{duration}` 미표기 문제 수정.

@@ -16,6 +16,8 @@ public class ProtectionAlertManager implements Runnable {
     private final ProtectionManager protectionManager;
     private final ConfigManager configManager;
     private final Map<UUID, ReminderState> reminderStates = new HashMap<>();
+    // 플레이어가 (이 매니저 기준으로) 접속해 있던 시작 시각. 이보다 전에 끝난 보호는 오프라인 중 종료로 판단
+    private final Map<UUID, Long> onlineSince = new HashMap<>();
     private final int taskId;
     // Read once at construction; reloadAlertManager() recreates this class after
     // ConfigManager.load() runs, so /invkeeper reload picks up config changes.
@@ -28,6 +30,11 @@ public class ProtectionAlertManager implements Runnable {
         // Config already clamps this to >= 1, but clamp again here defensively
         // since a batch count of 0 would cause a divide-by-zero below.
         this.soulbindScanBatches = Math.max(1, configManager.getSoulbindScanBatches());
+        // 리로드로 새로 만들어진 경우, 이미 접속 중인 플레이어는 지금부터 접속 중으로 취급
+        long now = System.currentTimeMillis();
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            onlineSince.put(player.getUniqueId(), now);
+        }
         this.taskId = Bukkit.getScheduler().runTaskTimer(plugin, this, 20L, 20L).getTaskId();
     }
 
@@ -37,6 +44,14 @@ public class ProtectionAlertManager implements Runnable {
     public void shutdown() {
         Bukkit.getScheduler().cancelTask(taskId);
         reminderStates.clear();
+        onlineSince.clear();
+    }
+
+    /**
+     * Record when a player joined (for PlayerJoinEvent)
+     */
+    public void markJoined(UUID playerUuid) {
+        onlineSince.put(playerUuid, System.currentTimeMillis());
     }
 
     /**
@@ -44,6 +59,7 @@ public class ProtectionAlertManager implements Runnable {
      */
     public void clearPlayerReminders(UUID playerUuid) {
         reminderStates.remove(playerUuid);
+        onlineSince.remove(playerUuid);
     }
 
     @Override
@@ -85,11 +101,13 @@ public class ProtectionAlertManager implements Runnable {
 
     private void checkPlayer(Player player) {
         TimedProtectionStore store = protectionManager.getTimedProtectionStore();
-        if (!store.isActive(player)) {
-            // A state exists only if protection was active on a previous tick while
-            // the player was online; otherwise it ran out while they were offline.
-            boolean expiredWhileOnline = reminderStates.remove(player.getUniqueId()) != null;
-            long expiry = store.getExpiryMillis(player);
+        long expiry = store.getExpiryMillis(player);
+        if (expiry <= System.currentTimeMillis()) {
+            // Expired while online if we saw it active on a previous tick, or it ended after the
+            // player came online (covers expiry right after join or /invkeeper reload).
+            boolean wasActive = reminderStates.remove(player.getUniqueId()) != null;
+            Long since = onlineSince.get(player.getUniqueId());
+            boolean expiredWhileOnline = wasActive || (since != null && expiry >= since);
             if (expiry >= 0) {
                 // Clear the stale expiry so the expiry notice is sent only once.
                 store.clear(player);

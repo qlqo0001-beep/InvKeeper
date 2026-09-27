@@ -86,6 +86,10 @@ public class GraveStorage {
         if (grave.getActiveLootSessionId() != null) {
             yaml.set("activeLootSessionId", grave.getActiveLootSessionId().toString());
         }
+        if (grave.getLockedUntil() > 0 || grave.getLockExtraCastSeconds() > 0) {
+            yaml.set("lockedUntil", grave.getLockedUntil());
+            yaml.set("lockExtraCastSeconds", grave.getLockExtraCastSeconds());
+        }
         yaml.set("recoveredAt", grave.getRecoveredAt());
         yaml.set("recoveredBy", grave.getRecoveredBy().name());
 
@@ -160,6 +164,7 @@ public class GraveStorage {
         if (lu != null && !lu.isEmpty()) g.setLooter(UUID.fromString(lu), y.getString("looterName", "?"));
         String sid = y.getString("activeLootSessionId");
         if (sid != null && !sid.isEmpty()) g.setActiveLootSessionId(UUID.fromString(sid));
+        g.setLock(y.getLong("lockedUntil", 0), y.getInt("lockExtraCastSeconds", 0));
         return g;
     }
 

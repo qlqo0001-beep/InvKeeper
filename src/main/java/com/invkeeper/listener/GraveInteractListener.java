@@ -1,6 +1,7 @@
 package com.invkeeper.listener;
 
 import com.invkeeper.grave.*;
+import com.invkeeper.protection.ProtectionManager;
 import com.invkeeper.util.MessageUtil;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -15,9 +16,11 @@ import java.util.UUID;
 public class GraveInteractListener implements Listener {
 
     private final GraveManager graveManager;
+    private final ProtectionManager protectionManager;
 
-    public GraveInteractListener(GraveManager graveManager) {
+    public GraveInteractListener(GraveManager graveManager, ProtectionManager protectionManager) {
         this.graveManager = graveManager;
+        this.protectionManager = protectionManager;
     }
 
     @EventHandler
@@ -69,7 +72,7 @@ public class GraveInteractListener implements Listener {
         // Not owner, not LOOTED: try loot item
         ItemStack hand = player.getInventory().getItemInMainHand();
         if (hand != null && !hand.getType().isAir()) {
-            GraveLootItemUseListener.handleLootItemUse(player, grave, hand, graveManager);
+            GraveLootItemUseListener.handleLootItemUse(player, grave, hand, graveManager, protectionManager);
             return;
         }
 

@@ -1,5 +1,5 @@
 name: InvKeeper
-version: '1.4.4'
+version: '1.5.0'
 main: com.invkeeper.InvKeeperPlugin
 api-version: '1.21'
 softdepend: [MMOItems]
@@ -9,12 +9,15 @@ description: 사망 시 인벤토리/경험치를 월드, 권한, 보호 아이�
 commands:
   invkeeper:
     description: InvKeeper 관리 명령어
-    usage: /<command> [status|reload|give|soulbind|grave]
+    usage: /<command> [status|notice|reload|give|soulbind|grave]
     aliases: [ik]
 
 permissions:
   invkeeper.status:
     description: 자신의 InvKeeper 보호 상태를 확인할 수 있는 권한
+    default: true
+  invkeeper.notice:
+    description: 위험 지역 안내를 개인적으로 켜고 끌 수 있는 권한 (/invkeeper notice)
     default: true
   invkeeper.admin:
     description: InvKeeper 관리 권한 (reload, give, soulbind unbind/inspect)

@@ -3,13 +3,15 @@ package com.invkeeper.listener;
 import com.invkeeper.config.ConfigManager;
 import com.invkeeper.config.ProtectionItemConfig;
 import com.invkeeper.grave.*;
+import com.invkeeper.protection.ProtectionManager;
 import com.invkeeper.util.MessageUtil;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 public class GraveLootItemUseListener {
 
-    public static boolean handleLootItemUse(Player player, Grave grave, ItemStack hand, GraveManager graveManager) {
+    public static boolean handleLootItemUse(Player player, Grave grave, ItemStack hand, GraveManager graveManager,
+                                            ProtectionManager protectionManager) {
         ConfigManager cfg = graveManager.getConfigManager();
 
         // Self-loot block
@@ -30,15 +32,23 @@ public class GraveLootItemUseListener {
             return true;
         }
 
-        // Check if hand is a grave loot tool
-        ProtectionItemConfig itemCfg = findLootTool(player, cfg);
-        if (itemCfg == null || itemCfg.getKind() != ProtectionItemConfig.Kind.GRAVE_LOOT_TOOL) {
+        // Locked by a grave lock: looting can't start yet (tool is not consumed)
+        if (grave.isLocked()) {
+            MessageUtil.send(player, cfg.getGraveLootLockedMessage()
+                .replace("{remaining}", MessageUtil.formatDuration(grave.getLockRemainingMillis(), cfg.getTimeFormat())));
+            return true;
+        }
+
+        // The item in the main hand itself must be a grave loot tool (it is the one consumed below)
+        ProtectionItemConfig itemCfg = protectionManager.findMatchingConfig(hand, ProtectionItemConfig.Kind.GRAVE_LOOT_TOOL);
+        if (itemCfg == null) {
             MessageUtil.send(player, cfg.getGraveLootItemRequiredMessage());
             return true;
         }
 
         int castSeconds = itemCfg.getCastTimeSeconds();
         if (castSeconds <= 0) castSeconds = 300;
+        castSeconds += grave.getLockExtraCastSeconds();
 
         // Consume item
         hand.setAmount(hand.getAmount() - 1);
@@ -64,28 +74,5 @@ public class GraveLootItemUseListener {
         }
 
         return true;
-    }
-
-    private static ProtectionItemConfig findLootTool(Player player, ConfigManager cfg) {
-        for (ProtectionItemConfig pic : cfg.getProtectionItemConfigs().values()) {
-            if (pic.getKind() != ProtectionItemConfig.Kind.GRAVE_LOOT_TOOL) continue;
-            if (pic.isUseVanilla()) {
-                for (ItemStack item : player.getInventory().getContents()) {
-                    if (item == null || item.getType().isAir()) continue;
-                    if (item.getType() == pic.getVanillaMaterial()) {
-                        // Check PDC
-                        var key = new org.bukkit.NamespacedKey("invkeeper", "item_kind");
-                        var meta = item.getItemMeta();
-                        if (meta != null && meta.getPersistentDataContainer().has(key)) {
-                            String kind = meta.getPersistentDataContainer().get(key, org.bukkit.persistence.PersistentDataType.STRING);
-                            if ("GRAVE_LOOT_TOOL".equals(kind)) return pic;
-                        }
-                        // Fallback: material match only
-                        return pic;
-                    }
-                }
-            }
-        }
-        return null;
     }
 }

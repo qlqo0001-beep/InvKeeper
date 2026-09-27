@@ -44,6 +44,9 @@ public class VanillaProtectionItems {
             lore = replaceDurationPlaceholder(lore, config.getDurationMinutes());
         } else if (config.getKind() == ProtectionItemConfig.Kind.GRAVE_LOOT_TOOL) {
             lore = replaceDurationPlaceholder(lore, config.getCastTimeSeconds());
+        } else if (config.getKind() == ProtectionItemConfig.Kind.GRAVE_LOCK) {
+            lore = replacePlaceholder(lore, "{lock_seconds}", String.valueOf(config.getLockSeconds()));
+            lore = replacePlaceholder(lore, "{extra_cast_seconds}", String.valueOf(config.getExtraCastSeconds()));
         }
         if (ownerName != null) {
             lore = replacePlaceholder(lore, "{owner}", ownerName);
